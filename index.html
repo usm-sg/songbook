@@ -49,7 +49,8 @@ nav.tabs button span{font-size:19px;line-height:1}nav.tabs button.on{color:var(-
 .song .meta{margin-left:auto;text-align:right;font-size:12px;color:var(--mu);flex:0 0 auto}
 .dirty{color:var(--ac2);font-size:11px}
 /* sheet (shared by player & studio) */
-.sheet{padding:4px 0 40px;font-size:19px}
+.sheet{padding:4px 0 40px;font-size:16px}
+#pSheet.playing{padding-bottom:75vh}
 .section{color:var(--ac2);font-weight:700;font-size:.72em;text-transform:uppercase;letter-spacing:1px;margin:16px 0 4px}
 .ln{margin:0 0 4px;line-height:1.3}
 .ln.plain{white-space:pre-wrap}
@@ -66,7 +67,7 @@ nav.tabs button span{font-size:19px;line-height:1}nav.tabs button.on{color:var(-
 /* player */
 .ptop{position:sticky;top:47px;z-index:10;background:var(--bg);padding:6px 0 8px;border-bottom:1px solid var(--line)}
 .pnow{display:flex;align-items:center;gap:12px;margin:6px 0}
-.pnow .big{font-size:34px;font-weight:800;color:var(--ac);min-width:96px;line-height:1}
+.pnow .big{font-size:30px;font-weight:800;color:var(--ac);min-width:96px;line-height:1}
 .pnow .nxt{color:var(--mu);font-size:13px}
 .pnow .dg{width:64px;margin-left:auto}
 .beats{display:flex;gap:5px;margin-top:4px}
@@ -86,7 +87,7 @@ nav.tabs button span{font-size:19px;line-height:1}nav.tabs button.on{color:var(-
 .esec .eh{display:flex;gap:6px;align-items:center;margin-bottom:6px}
 .esec .eh input{flex:1;font-weight:700;color:var(--ac2)}
 .eline{display:flex;align-items:flex-end;gap:6px;border-bottom:1px dashed var(--line);padding:4px 0}
-.eline .body{flex:1;min-width:0;font-size:19px}
+.eline .body{flex:1;min-width:0}
 .eline .tools{display:flex;gap:2px;flex:0 0 auto}
 .eline .tools button{padding:2px 6px;font-size:13px;border:0;background:none;color:var(--mu)}
 .syl{cursor:pointer}
@@ -149,14 +150,16 @@ code{background:var(--panel2);padding:0 4px;border-radius:4px;font-size:.92em}
       </div>
       <div class="row" style="margin-top:6px">
         <select id="loopSel" style="flex:1;min-width:150px"></select>
-        <button class="sm on" id="clkBtn" title="Metronome click">♩</button>
-        <button class="sm on" id="strBtn" title="Play chord sound">🎸</button>
-        <button class="sm on" id="cntBtn" title="Count-in bar">1234</button>
+        <button class="sm" id="clkBtn" title="Metronome click">♩ Click</button>
+        <button class="sm" id="strBtn" title="Strum guitar on each chord">🎸 Strum</button>
+        <button class="sm" id="cntBtn" title="Count-in bar">1234</button>
+        <div class="ctl"><button id="fDn">A−</button><b id="fVal" style="font-size:12px">16</b><button id="fUp">A+</button></div>
         <button class="sm" id="pEdit">✎</button>
       </div>
     </div>
     <div class="ptop">
       <div class="pnow">
+        <button class="pri" id="pPlay2" style="font-size:20px;width:52px;height:52px;border-radius:50%;padding:0">▶</button>
         <div><div class="big" id="nowC">–</div><div class="beats" id="beats"></div></div>
         <div class="nxt" id="nxtC"></div>
         <div class="dg" id="nowDg"></div>
@@ -526,7 +529,7 @@ const DB={db:null,mem:new Map(),kvm:new Map(),
   async set(k,v){this.kvm.set(k,v);if(this.db)try{await this.req('kv','readwrite',s=>s.put(v,k))}catch(e){}}
 };
 let SONGS=[];        // {id,rev,text,dirty,emb,embRev}
-let SET={dbUrl:'songs.json',click:1,strum:0.5,lastSync:0};
+let SET={dbUrl:'songs.json',click:1,strum:0.5,lastSync:0,font:16,pClick:true,pStrum:false,pCount:true};
 const parsedCache=new Map();
 function parsed(s){const c=parsedCache.get(s.id);if(c&&c.rev===s.rev&&c.text===s.text)return c.d;const d=parseSong(s.text);parsedCache.set(s.id,{rev:s.rev,text:s.text,d});return d}
 
@@ -638,7 +641,8 @@ $('aiBtn').onclick=async()=>{
 /* ===== PLAYER ===== */
 const P={song:null,doc:null,tl:null,ts:4,bpm:80,t:0,capo:0,click:true,strum:true,countIn:true,loop:null,loopVal:'',playing:false,timer:0,raf:0,queue:[],ev:0,beatIn:0,countLeft:0,nextTime:0,cur:-1,ab:0,evGroup:[],taps:[]};
 const dispC=(c,tr)=>transposeStr(c,P.t-P.capo+(tr||0),'auto');
-function openPlayer(s){if(!s)return;stopPlay();P.song=s;P.doc=parsed(s);P.bpm=P.doc.meta.bpm||80;P.t=0;P.capo=0;P.loop=null;P.loopVal='';P.cur=-1;renderPlayer();showView('play')}
+function applyPlayerPrefs(){P.click=SET.pClick!==false;P.strum=!!SET.pStrum;P.countIn=SET.pCount!==false;$('clkBtn').classList.toggle('on',P.click);$('strBtn').classList.toggle('on',P.strum);$('cntBtn').classList.toggle('on',P.countIn);const f=SET.font||16;$('fVal').textContent=f;$('pSheet').style.fontSize=f+'px';$('eVisual').style.fontSize=(f+1)+'px'}
+function openPlayer(s){if(!s)return;stopPlay();applyPlayerPrefs();P.song=s;P.doc=parsed(s);P.bpm=P.doc.meta.bpm||80;P.t=0;P.capo=0;P.loop=null;P.loopVal='';P.cur=-1;renderPlayer();showView('play')}
 function renderPlayer(){
   if(!P.song){$('pEmpty').style.display='';$('pWrap').style.display='none';return}
   $('pEmpty').style.display='none';$('pWrap').style.display='';
@@ -685,18 +689,26 @@ function showNow(i,scroll){
   const nx=ev[i+1];$('nxtC').innerHTML=nx?`next <b style="color:var(--tx)">${esc(dispC(nx.c,nx.tr))}</b><br>${e.b} beat${e.b>1?'s':''}`:'';
   const ci=chordInfo(dc);const v=ci&&voicings(ci.root,ci.type,ci.bass)[0];$('nowDg').innerHTML=v?diagramSVG(v,ci.root,true):'';
   document.querySelectorAll('#ochips button').forEach(b=>b.classList.toggle('cur',+b.dataset.oi===e.oi));
-  if(scroll&&els[0]){const r=els[0].getBoundingClientRect(),top=$('v-play').querySelector('.ptop').getBoundingClientRect().bottom;if(r.top<top+10||r.bottom>window.innerHeight-90)window.scrollBy({top:r.top-top-window.innerHeight*0.18,behavior:'smooth'})}
+  if(scroll&&els[0])follow(els[0]);
+}
+// keep the current line just under the sticky chord bar, with the next lines visible below it
+function follow(el){
+  let line=el.closest('.ln')||el;const prev=line.previousElementSibling;
+  if(prev&&prev.classList.contains('section'))line=prev;
+  const bar=$('v-play').querySelector('.ptop').getBoundingClientRect().bottom;
+  const d=line.getBoundingClientRect().top-(bar+6);
+  if(Math.abs(d)>3)window.scrollBy({top:d,behavior:'smooth'});
 }
 function startPlay(from){
   if(!P.tl.events.length){toast('This song has no chords to play');return}
   const c=ac();P.playing=true;P.queue=[];
   P.ev=from!=null?from:(P.loop&&!P.loop.all?P.loop.a:(P.cur>=0&&P.cur<P.tl.events.length-1?P.cur:0));
   P.beatIn=0;P.countLeft=P.countIn?P.ts:0;P.nextTime=c.currentTime+0.12;
-  $('pPlay').textContent='■';P.timer=setInterval(sched,25);sched();
+  $('pPlay').textContent=$('pPlay2').textContent='■';$('pSheet').classList.add('playing');P.timer=setInterval(sched,25);sched();
   cancelAnimationFrame(P.raf);P.raf=requestAnimationFrame(tick);
   try{navigator.wakeLock&&navigator.wakeLock.request('screen').then(w=>P.wake=w).catch(()=>{})}catch(e){}
 }
-function stopPlay(){P.playing=false;clearInterval(P.timer);cancelAnimationFrame(P.raf);P.queue=[];$('pPlay').textContent='▶';document.querySelectorAll('#beats i').forEach(b=>b.className='');if(P.wake){try{P.wake.release()}catch(e){}P.wake=null}}
+function stopPlay(){P.playing=false;clearInterval(P.timer);cancelAnimationFrame(P.raf);P.queue=[];$('pPlay').textContent=$('pPlay2').textContent='▶';$('pSheet').classList.remove('playing');document.querySelectorAll('#beats i').forEach(b=>b.className='');if(P.wake){try{P.wake.release()}catch(e){}P.wake=null}}
 function sched(){const c=ac();while(P.playing&&P.nextTime<c.currentTime+0.15){schedBeat(P.nextTime);P.nextTime+=60/P.bpm}}
 function schedBeat(t){
   const ts=P.ts;
@@ -720,7 +732,7 @@ function tick(){
   }
   if(P.playing||P.queue.length)P.raf=requestAnimationFrame(tick);
 }
-$('pPlay').onclick=()=>P.playing?stopPlay():startPlay();
+$('pPlay').onclick=$('pPlay2').onclick=()=>P.playing?stopPlay():startPlay();
 $('bUp').onclick=()=>{P.bpm=Math.min(260,P.bpm+2);$('bVal').textContent=P.bpm};
 $('bDn').onclick=()=>{P.bpm=Math.max(30,P.bpm-2);$('bVal').textContent=P.bpm};
 function tapTempo(arr,cb){const n=performance.now();if(arr.length&&n-arr[arr.length-1]>2000)arr.length=0;arr.push(n);if(arr.length>5)arr.shift();if(arr.length>=3){let s=0;for(let i=1;i<arr.length;i++)s+=arr[i]-arr[i-1];cb(Math.round(60000/(s/(arr.length-1))))}}
@@ -728,9 +740,11 @@ $('tapT').onclick=()=>tapTempo(P.taps,b=>{P.bpm=Math.max(30,Math.min(260,b));$('
 const reP=()=>{const was=P.playing;renderPlayer();if(was)showNow(P.cur,false)};
 $('kUp').onclick=()=>{P.t=P.t>=11?0:P.t+1;reP()};$('kDn').onclick=()=>{P.t=P.t<=-11?0:P.t-1;reP()};
 $('cUp').onclick=()=>{if(P.capo<11){P.capo++;reP()}};$('cDn').onclick=()=>{if(P.capo>0){P.capo--;reP()}};
-$('clkBtn').onclick=e=>{P.click=!P.click;e.currentTarget.classList.toggle('on',P.click)};
-$('strBtn').onclick=e=>{P.strum=!P.strum;e.currentTarget.classList.toggle('on',P.strum)};
-$('cntBtn').onclick=e=>{P.countIn=!P.countIn;e.currentTarget.classList.toggle('on',P.countIn)};
+$('clkBtn').onclick=e=>{P.click=!P.click;SET.pClick=P.click;DB.set('settings',SET);e.currentTarget.classList.toggle('on',P.click)};
+$('strBtn').onclick=e=>{P.strum=!P.strum;SET.pStrum=P.strum;DB.set('settings',SET);e.currentTarget.classList.toggle('on',P.strum)};
+$('cntBtn').onclick=e=>{P.countIn=!P.countIn;SET.pCount=P.countIn;DB.set('settings',SET);e.currentTarget.classList.toggle('on',P.countIn)};
+const setFont=d=>{SET.font=Math.max(11,Math.min(30,(SET.font||16)+d));DB.set('settings',SET);applyPlayerPrefs();if(P.playing&&P.cur>=0)showNow(P.cur,true)};
+$('fUp').onclick=()=>setFont(1);$('fDn').onclick=()=>setFont(-1);
 $('pEdit').onclick=()=>openStudio(P.song);
 $('loopSel').onchange=e=>{
   const v=e.target.value;P.loopVal=v;P.ab=0;
@@ -1160,7 +1174,7 @@ $('setBtn').onclick=async()=>{
     if(!SONGS.length)for(const t of SAMPLES){const s={id:uid(),rev:1,text:t,dirty:false};SONGS.push(s);await DB.put(s)}
     await DB.set('seeded',true);
   }
-  SONGS.forEach(indexSong);setChip();renderList();
+  SONGS.forEach(indexSong);setChip();renderList();applyPlayerPrefs();
   if(navigator.onLine&&Date.now()-(SET.lastSync||0)>60000)syncOnline(false);
   if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude/.test(location.host)){try{navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}}
 })();
