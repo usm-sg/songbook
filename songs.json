@@ -1,0 +1,19 @@
+{
+ "app": "moes-songbook",
+ "format": 1,
+ "songs": [
+  {
+   "id": "demo1",
+   "rev": 1,
+   "title": "မိုးစက်လေးများ",
+   "text": "{title: မိုးစက်လေးများ}\n{artist: Sample – original demo lyrics}\n{key: C}\n{tempo: 76}\n{time: 4/4}\n{tags: sample, slow}\n{order: Intro, Verse 1, Chorus, Verse 2, Chorus, Outro}\n\n{section: Intro}\n[C][G][Am][F]\n\n{section: Verse 1}\n[C]မိုးစက်လေးတွေ [G]ကျလာတယ်\n[Am]မင်းကိုသတိ[F]ရနေတယ်\n[C]လမ်းလေးတစ်လျှောက် [G]လျှောက်ရင်း\n[F]အိမ်ကိုပြန်[G]ချင်ပြီ\n\n{section: Chorus}\n[F]မိုးရွာတဲ့ [G]ညနေ\n[Em]နှလုံးသား[Am]ထဲမှာ\n[F]မင်းအသံ[G:2]လေး[G7:2]\n[C]ကြားနေရတယ်\n\n{section: Verse 2}\n[C]ပြတင်းပေါက်က [G]ကြည့်နေတယ်\n[Am]ကောင်းကင်ပြာ [F]မှိုင်းနေတယ်\n[C]ဓာတ်ပုံဟောင်း[G]လေးတွေ\n[F]ရင်ထဲမှာ [G]ပြန်လာ\n\n{section: Outro}\n[F][G][C:8]\n"
+  },
+  {
+   "id": "demo2",
+   "rev": 1,
+   "title": "ရွှေရောင်နေဝင်ချိန်",
+   "text": "{title: ရွှေရောင်နေဝင်ချိန်}\n{artist: Sample – original demo lyrics}\n{key: G}\n{tempo: 96}\n{time: 3/4}\n{tags: sample, waltz}\n{order: Verse, Chorus, Verse, Chorus}\n\n{section: Verse}\n[G]ကန်ရေပြင်ပေါ် [D]နေဝင်ချိန်\n[Em]ငှက်လေးတွေ [C]အိပ်တန်းပြန်\n[G]လေညင်းလေး [D]တိုက်ခတ်လို့\n[C]ငါတို့အ[D]တူ [G]ရှိနေမယ်\n\n{section: Chorus}\n[C]ရွှေရောင်[D]ကောင်းကင်\n[G]ရွှေရောင်[Em]နှလုံးသား\n[C]ဒီညလေး[D:6]မှာ[G:6]\n"
+  }
+ ],
+ "deleted": []
+}
