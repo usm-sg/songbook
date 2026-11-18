@@ -117,11 +117,46 @@ textarea.ed{width:100%;min-height:55vh;font:14px/1.6 ui-monospace,Menlo,Consolas
 .toast{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);background:#000d;color:#fff;padding:8px 14px;border-radius:20px;font-size:13px;z-index:60;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;text-align:center}
 .toast.on{opacity:1}
 svg.dg{width:100%;height:auto;display:block}
+
+.pstrip{display:flex;gap:2px;margin-top:4px;flex-wrap:wrap}
+.pstrip .ps{font-style:normal;min-width:18px;text-align:center;font:700 14px/20px system-ui;color:var(--tx);background:var(--panel2);border-radius:4px;padding:0 2px}
+.pstrip .ps.soft{color:var(--mu);font-weight:400}.pstrip .ps.rest{color:#5a4e45}
+.pstrip .ps.now{background:var(--ac);color:#1d1408}
+.favb{min-width:30px;margin-right:4px}.favb.on{background:none!important;color:var(--ac)!important;border-color:var(--ac)}
+.libtabs button{font-size:13px;padding:8px 4px;white-space:nowrap}
+#printArea{display:none}
+@media print{
+  @page{margin:12mm}
+  body{background:#fff!important;color:#000!important}
+  body>*:not(#printArea){display:none!important}
+  #printArea{display:block;color:#000;font-family:"Noto Sans Myanmar","Padauk",system-ui,sans-serif;line-height:1.3}
+  #printArea h1{font-size:1.7em;margin:0 0 2px}
+  #printArea .pmeta{color:#444;font-size:.85em;margin:1px 0}
+  #printArea .psec{break-inside:avoid;margin-top:12px}
+  #printArea .pname{font-weight:700;text-transform:uppercase;letter-spacing:1px;font-size:.8em;border-bottom:1px solid #999;margin-bottom:4px}
+  #printArea .pl{margin:0 0 3px}
+  #printArea .psg{display:inline-block;vertical-align:bottom;white-space:pre}
+  #printArea .psg b{display:block;font:700 .82em/1.2 system-ui,sans-serif;min-height:1.2em;padding-right:.25em}
+  #printArea .psg span{display:block;line-height:1.6}
+  #printArea .pchords b{font-family:system-ui,sans-serif}
+  #printArea sup{font-size:.6em;color:#555}
+  #printArea .pcom{font-style:italic;color:#444}
+  #printArea .pdiag{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px;break-inside:avoid}
+  #printArea .pdiag div{width:64px;text-align:center;font-size:.8em}
+  #printArea svg [fill="#e9dfd6"]{fill:#111}#printArea svg [stroke="#e9dfd6"]{stroke:#111}#printArea svg [fill="#a99d93"]{fill:#444}
+  #printArea .pfoot{margin-top:14px;color:#777;font-size:.7em}
+}
+.stb{display:inline-block;font-size:11px;font-weight:600;border-radius:10px;padding:1px 7px;margin-left:4px;vertical-align:middle;font-family:system-ui,sans-serif}
+.st-scan{background:rgba(229,104,74,.18);color:#ff9a8a}.st-wip{background:rgba(240,166,64,.18);color:var(--ac)}.st-ready{background:rgba(127,197,139,.18);color:var(--ok)}
+.stbar{border-radius:10px;padding:8px 10px;margin:6px 0;font-size:13px}
+.prem{color:var(--ac)}.prem-tag{color:var(--ac);font-size:12.5px;font-weight:600}
+.lockbox{background:rgba(240,166,64,.1);border:1px solid var(--ac);border-radius:10px;padding:10px;margin-top:6px;font-size:13.5px}
+.lock{font-size:18px}
 code{background:var(--panel2);padding:0 4px;border-radius:4px;font-size:.92em}
 </style>
 </head>
 <body>
-<header><h1>Moe's <b>Songbook</b></h1><span id="syncChip">offline</span><button class="sm" id="setBtn">⚙</button></header>
+<header><h1>Moe's <b>Songbook</b></h1><span id="syncChip">offline</span><button class="sm" id="acctBtn" onclick="accountModal()">Sign in</button><button class="sm" id="setBtn">⚙</button></header>
 <main>
 
 <!-- LIBRARY -->
@@ -130,8 +165,9 @@ code{background:var(--panel2);padding:0 4px;border-radius:4px;font-size:.92em}
     <input type="text" id="q" class="my" placeholder="ရှာရန် · Search title, singer, lyrics…">
     <button id="aiBtn" title="On-device AI search">AI</button>
   </div>
+  <div class="seg libtabs" style="margin-bottom:8px;width:100%"><button data-lm="phone" class="on" style="flex:1">📱 Phone</button><button data-lm="fav" style="flex:1">★ Favorites</button><button data-lm="community" style="flex:1">🌐 Online</button><button data-lm="mine" style="flex:1">👤 Mine</button></div>
   <div class="row" style="justify-content:space-between;margin-bottom:8px">
-    <span class="muted small" id="libCount"></span>
+    <span class="row" style="gap:6px"><span class="muted small" id="libCount"></span><select id="stFilter" class="sm" style="padding:3px 6px;font-size:12px"><option value="">All statuses</option><option value="scanned">📷 Scanned</option><option value="imported">📥 Imported</option><option value="wip">✏️ In progress</option><option value="ready">✅ Ready</option><option value="none">Not set</option></select></span>
     <button class="sm pri" id="newSong">＋ New song</button>
   </div>
   <div id="list"></div>
@@ -150,17 +186,20 @@ code{background:var(--panel2);padding:0 4px;border-radius:4px;font-size:.92em}
       </div>
       <div class="row" style="margin-top:6px">
         <select id="loopSel" style="flex:1;min-width:150px"></select>
+        <select id="patSel" style="flex:1;min-width:150px"></select>
         <button class="sm" id="clkBtn" title="Metronome click">♩ Click</button>
         <button class="sm" id="strBtn" title="Strum guitar on each chord">🎸 Strum</button>
         <button class="sm" id="cntBtn" title="Count-in bar">1234</button>
         <div class="ctl"><button id="fDn">A−</button><b id="fVal" style="font-size:12px">16</b><button id="fUp">A+</button></div>
+        <button class="sm" id="pFav" title="Favorite">☆</button>
+        <button class="sm" id="pPrint" title="Print chord sheet">🖨</button>
         <button class="sm" id="pEdit">✎</button>
       </div>
     </div>
     <div class="ptop">
       <div class="pnow">
         <button class="pri" id="pPlay2" style="font-size:20px;width:52px;height:52px;border-radius:50%;padding:0">▶</button>
-        <div><div class="big" id="nowC">–</div><div class="beats" id="beats"></div></div>
+        <div><div class="big" id="nowC">–</div><div class="beats" id="beats"></div><div class="pstrip" id="patStrip"></div></div>
         <div class="nxt" id="nxtC"></div>
         <div class="dg" id="nowDg"></div>
       </div>
@@ -168,6 +207,8 @@ code{background:var(--panel2);padding:0 4px;border-radius:4px;font-size:.92em}
     </div>
     <div class="ptitle my" id="pTitle"></div>
     <div class="muted small my" id="pSub"></div>
+    <div id="pStatus"></div>
+    <div id="pCloud" class="card" style="display:none;margin:8px 0;padding:10px"></div>
     <div class="sheet lyr" id="pSheet"></div>
   </div>
 </section>
@@ -185,6 +226,8 @@ code{background:var(--panel2);padding:0 4px;border-radius:4px;font-size:.92em}
         <div><label>Tempo (BPM)</label><div class="row" style="flex-wrap:nowrap"><input type="number" id="mBpm" min="30" max="260"><button class="sm" id="mTap">tap</button></div></div>
         <div><label>Beats per bar</label><select id="mTs"><option>2</option><option>3</option><option selected>4</option><option>6</option></select></div>
         <div><label>Tags</label><input type="text" id="mTags" placeholder="love, slow"></div>
+        <div class="full"><label>Status</label><div class="row" style="flex-wrap:nowrap"><select id="mStatus" style="flex:1"><option value="">(not set)</option><option value="scanned">📷 Scanned – timing not set yet</option><option value="imported">📥 Imported – timing not set yet</option><option value="wip">✏️ In progress</option><option value="ready">✅ Ready – fully adjusted</option></select><button class="sm" id="mReady">Mark ready</button></div></div>
+        <div class="full"><label>Strumming pattern (whole song)</label><div class="row" style="flex-wrap:nowrap"><select id="mStrum" style="flex:1"></select><button class="sm" id="mStrumLib">Patterns…</button></div></div>
       </div>
     </div>
     <div class="row" style="justify-content:space-between;margin-bottom:10px">
@@ -203,9 +246,16 @@ code{background:var(--panel2);padding:0 4px;border-radius:4px;font-size:.92em}
     <div class="sticky-save">
       <button class="danger" id="eDel">Delete</button>
       <button id="ePlay">▶ Test play</button>
+      <button id="ePub">☁ Publish</button>
       <button class="pri" id="eSave">Save</button>
     </div>
   </div>
+</section>
+
+<!-- ADMIN -->
+<section class="view" id="v-admin">
+  <div class="row" style="justify-content:space-between;margin-bottom:10px"><b style="font-size:18px">🛠 Admin</b><button class="sm" onclick="showView('lib')">Close</button></div>
+  <div id="adminBody"></div>
 </section>
 
 <!-- SCAN -->
@@ -228,6 +278,12 @@ code{background:var(--panel2);padding:0 4px;border-radius:4px;font-size:.92em}
     <b>Or paste text</b> <span class="muted small">— chords on the line above lyrics</span>
     <textarea class="ed my" id="pasteTA" style="min-height:120px;margin-top:8px" placeholder="C          G&#10;မိုးစက်လေးတွေ ကျလာတယ်"></textarea>
     <div class="row" style="margin-top:6px"><button id="pasteGo">Convert</button></div>
+  </div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between"><b>Import songs from a file</b>
+      <label><button class="pri" id="impPick">📥 Excel / CSV / text</button><input type="file" id="impIn" accept=".xlsx,.xls,.csv,.txt,.json" style="display:none"></label></div>
+    <div class="hint">For chords written inside the lyrics, like <code>[C]မိုးစက်[G]လေး</code>, with bar rows like <code>|[C]___ |[Am]_[G]_ |</code>. A spreadsheet needs a column for the song title, the singer, the key, and the chords-with-lyrics text (e.g. song · artist · key · chords_and_lyrics). Songs go into your phone library as 📥 Imported (private) so you can check them first.</div>
+    <div id="impList"></div>
   </div>
   <div class="card" id="draftCard" style="display:none">
     <b>Draft</b> <span class="muted small">— fix obvious errors here or in Studio</span>
@@ -473,6 +529,9 @@ function parseSong(src){
       else if(k==='tempo'||k==='bpm')meta.bpm=parseFloat(v)||0;
       else if(k==='time'){const n=parseInt(v);if(n>0)meta.ts=n}
       else if(k==='tags')meta.tags=v;
+      else if(k==='strum'){if(cur)cur.strum=v;else meta.strum=v}
+      else if(k==='status')meta.status=v.toLowerCase();
+      else if(k==='source')meta.source=v;
       else if(k==='order')order=v.split(',').map(x=>x.trim()).filter(Boolean);
       else if(['section','sov','soc','sob','start_of_verse','start_of_chorus','start_of_bridge'].includes(k))newSec(v||({soc:'Chorus',start_of_chorus:'Chorus',sob:'Bridge',start_of_bridge:'Bridge'}[k]||'Verse'));
       else if(['comment','c','ci','cb'].includes(k)){if(!cur)newSec('Song');cur.lines.push({comment:v})}
@@ -494,10 +553,10 @@ function serLine(l){
 function serSong(d){
   const m=d.meta,L=[];
   L.push(`{title: ${m.title||''}}`);if(m.artist)L.push(`{artist: ${m.artist}}`);if(m.composer)L.push(`{composer: ${m.composer}}`);
-  if(m.key)L.push(`{key: ${m.key}}`);if(m.bpm)L.push(`{tempo: ${m.bpm}}`);L.push(`{time: ${m.ts||4}/4}`);if(m.tags)L.push(`{tags: ${m.tags}}`);
+  if(m.key)L.push(`{key: ${m.key}}`);if(m.bpm)L.push(`{tempo: ${m.bpm}}`);L.push(`{time: ${m.ts||4}/4}`);if(m.tags)L.push(`{tags: ${m.tags}}`);if(m.strum)L.push(`{strum: ${m.strum}}`);if(m.status)L.push(`{status: ${m.status}}`);if(m.source)L.push(`{source: ${m.source}}`);
   const seq=d.sections.map(s=>s.name);
   if(d.order.join('|')!==seq.join('|'))L.push(`{order: ${d.order.join(', ')}}`);
-  for(const s of d.sections){L.push('');L.push(`{section: ${s.name}}`);for(const l of s.lines)L.push(serLine(l))}
+  for(const s of d.sections){L.push('');L.push(`{section: ${s.name}}`);if(s.strum)L.push(`{strum: ${s.strum}}`);for(const l of s.lines)L.push(serLine(l))}
   return L.join('\n')+'\n';
 }
 function oItem(x){const m=/^(.*?)\s+([+-]\d{1,2})$/.exec((x||'').trim());return m?{name:m[1],tr:parseInt(m[2])}:{name:(x||'').trim(),tr:0}}
@@ -506,7 +565,7 @@ function plainLyrics(d){return d.sections.map(s=>s.lines.map(l=>l.text||'').join
 function buildTimeline(d){
   const ts=d.meta.ts||4,events=[];let beat=0;
   d.order.forEach((raw,oi)=>{const it=oItem(raw);const s=d.sections.find(x=>x.name===it.name);if(!s)return;
-    s.lines.forEach((l,li)=>{if(l.comment!=null)return;l.chords.forEach((c,ci)=>{const b=c.b||ts;events.push({oi,li,ci,c:c.c,b,start:beat,tr:it.tr});beat+=b})})});
+    s.lines.forEach((l,li)=>{if(l.comment!=null)return;l.chords.forEach((c,ci)=>{const b=c.b||ts;events.push({oi,li,ci,c:c.c,b,start:beat,tr:it.tr,strum:s.strum||d.meta.strum||''});beat+=b})})});
   return {events,total:beat};
 }
 // groups of chords at the same position, with the text that follows
@@ -608,17 +667,24 @@ function snippet(id,q){const x=IDX.get(id);if(!x)return '';if(!q)return esc(x.li
   if(!best)return esc(x.lines[0]||'');const n=normTxt(best),i=n.indexOf(q);
   return i>=0?esc(best.slice(0,i))+'<mark>'+esc(best.slice(i,i+q.length))+'</mark>'+esc(best.slice(i+q.length)):esc(best)}
 let AI={on:false,pipe:null,loading:false};
+$('stFilter').onchange=e=>{STFILTER=e.target.value;renderList()};
+document.querySelectorAll('[data-lm]').forEach(b=>b.onclick=()=>{LIBMODE=b.dataset.lm;document.querySelectorAll('[data-lm]').forEach(x=>x.classList.toggle('on',x===b));renderList()});
 async function renderList(){
   const q=normTxt($('q').value.trim());
+  if(LIBMODE==='fav'){$('list').onclick=null;return renderFavList(q)}
+  if(LIBMODE!=='phone'){$('list').onclick=null;return renderCloudList(q)}
+  $('list').onclick=listClick;
   let rows=SONGS.map(s=>({s,sc:kwScore(s.id,q)}));
   if(q&&AI.on&&AI.pipe){const qe=await embed('query: '+$('q').value.trim());rows.forEach(r=>{if(r.s.emb&&r.s.embRev===r.s.rev){let d=0;for(let i=0;i<qe.length;i++)d+=qe[i]*r.s.emb[i];r.ai=d;r.sc=r.sc+Math.max(0,(d-0.78))*400}})}
+  if(STFILTER)rows=rows.filter(r=>{const st=statusOf(parsed(r.s));return STFILTER==='none'?!st:st===STFILTER});
   if(q)rows=rows.filter(r=>r.sc>=12).sort((a,b)=>b.sc-a.sc);
   else rows.sort((a,b)=>parsed(a.s).meta.title.localeCompare(parsed(b.s).meta.title));
-  $('libCount').textContent=q?`${rows.length} found`:`${SONGS.length} songs`;
-  $('list').innerHTML=rows.length?rows.map(({s})=>{const m=parsed(s).meta;return `<div class="song" data-id="${s.id}"><div style="min-width:0;flex:1"><div class="t my">${esc(m.title||'Untitled')}</div><div class="a my">${esc(m.artist)}${s.dirty?' <span class="dirty">● local edit</span>':''}</div><div class="snip my">${snippet(s.id,q)}</div></div><div class="meta">${esc(m.key||'')}<br>${m.bpm?m.bpm+' bpm':''}<br><button class="sm" data-ed="${s.id}">✎</button></div></div>`}).join(''):`<div class="empty">${q?'No match. Try fewer syllables, or the AI search.':'No songs yet.'}</div>`;
+  $('libCount').textContent=q||STFILTER?`${rows.length} of ${SONGS.length}`:`${SONGS.length} songs`;
+  $('list').innerHTML=rows.length?rows.map(({s})=>{const m=parsed(s).meta;return `<div class="song" data-id="${s.id}"><div style="min-width:0;flex:1"><div class="t my">${s.premium?'<span class="prem">★</span> ':''}${esc(m.title||'Untitled')}${s.cloudId?' <span class="small muted">☁</span>':''}</div><div class="a my">${esc(m.artist)}${statusBadge(statusOf(parsed(s)))}${s.dirty?' <span class="dirty">● local edit</span>':''}</div><div class="snip my">${snippet(s.id,q)}</div></div><div class="meta">${esc(m.key||'')}<br>${m.bpm?m.bpm+' bpm':''}<br>${ME?favBtnHtml(favKeyOf(s)):''}<button class="sm" data-ed="${s.id}">✎</button></div></div>`}).join(''):`<div class="empty">${q?'No match. Try fewer syllables, or the AI search.':'No songs yet.'}</div>`;
 }
 $('q').addEventListener('input',()=>{clearTimeout(renderList.t);renderList.t=setTimeout(renderList,AI.on?350:120)});
-$('list').onclick=e=>{const ed=e.target.closest('[data-ed]');if(ed){openStudio(SONGS.find(s=>s.id===ed.dataset.ed));return}const c=e.target.closest('.song');if(c)openPlayer(SONGS.find(s=>s.id===c.dataset.id))};
+const listClick=async e=>{const fv=e.target.closest('[data-fav]');if(fv){await toggleFav(fv.dataset.fav);renderList();return}const ed=e.target.closest('[data-ed]');if(ed){openStudio(SONGS.find(s=>s.id===ed.dataset.ed));return}const c=e.target.closest('.song');if(c)openPlayer(SONGS.find(s=>s.id===c.dataset.id))};
+$('list').onclick=listClick;
 $('newSong').onclick=$('sNew2').onclick=()=>openStudio(null);
 
 /* AI search (on-device, transformers.js) */
@@ -638,17 +704,119 @@ $('aiBtn').onclick=async()=>{
   renderList();
 };
 
+/* ===== SONG STATUS ===== */
+const STATUS={scanned:{label:'📷 Scanned',long:'Scanned – timing not set',cls:'st-scan'},imported:{label:'📥 Imported',long:'Imported – timing not set',cls:'st-scan'},wip:{label:'✏️ In progress',long:'Work in progress',cls:'st-wip'},ready:{label:'✅ Ready',long:'Fully adjusted',cls:'st-ready'}};
+const statusOf=d=>STATUS[d.meta.status]?d.meta.status:'';
+const statusBadge=st=>st?`<span class="stb ${STATUS[st].cls}">${STATUS[st].label}</span>`:'';
+let STFILTER='';
+/* ===== STRUMMING PATTERNS =====
+   One bar per pattern. Symbols: D down · U up · d / u soft · x muted chuck · B bass note · b alternate bass ·
+   1–6 pick one string (1 = high E, 6 = low E) · - rest. Length ÷ beats per bar = steps per beat. */
+const PATTERNS=[
+  {name:'Down beats',ts:4,steps:'D-D-D-D-',note:'One down-strum per beat; easiest start'},
+  {name:'Down-up eighths',ts:4,steps:'DUDUDUDU',note:'Even eighths'},
+  {name:'Pop / folk (Old Faithful)',ts:4,steps:'D-DU-UDU',note:'The most used pattern in pop songs'},
+  {name:'Pop with accent',ts:4,steps:'D-dU-udU',note:'Same rhythm, soft middle strums'},
+  {name:'Slow ballad',ts:4,steps:'D---D-DU',note:'Long first strum, good for slow love songs'},
+  {name:'Ballad 2',ts:4,steps:'D--UD-DU',note:'Ballad with an early up-strum'},
+  {name:'Rock eighths',ts:4,steps:'DDDDDDDD',note:'All down-strums, driving'},
+  {name:'Chuck (percussive)',ts:4,steps:'D-xUD-xU',note:'Muted chuck on beats 2 and 4, like a snare'},
+  {name:'Pop chuck',ts:4,steps:'DUxUDUxU',note:'Busy acoustic pop with chucks'},
+  {name:'Reggae / ska off-beat',ts:4,steps:'-u-u-u-u',note:'Only the "and"s, light up-strums'},
+  {name:'Shuffle',ts:4,steps:'D-DUD-DU',swing:true,note:'Swung eighths (long-short)'},
+  {name:'Funk sixteenths',ts:4,steps:'D-xUD-xUDUxUD-xU',note:'Sixteenth notes with chucks'},
+  {name:'Country boom-chick',ts:4,steps:'B-D-b-D-',note:'Bass note, strum, alternate bass, strum'},
+  {name:'Fingerpicking (Travis)',ts:4,steps:'B3b2B3b2',note:'Thumb alternates bass, fingers pick strings 3 and 2'},
+  {name:'Arpeggio up',ts:4,steps:'B321B321',note:'Bass then strings 3, 2, 1'},
+  {name:'Arpeggio up-down',ts:4,steps:'B3212123',note:'Rolling arpeggio for ballads'},
+  {name:'Waltz',ts:3,steps:'B-D-D-',note:'Bass on 1, strums on 2 and 3'},
+  {name:'Waltz down-up',ts:3,steps:'D-DUDU',note:'3/4 with up-strums'},
+  {name:'Waltz arpeggio',ts:3,steps:'B32321',note:'Fingerpicked 3/4'},
+  {name:'6/8 ballad',ts:6,steps:'D-UD-U',note:'Two groups of three'},
+  {name:'6/8 arpeggio',ts:6,steps:'B32123',note:'Fingerpicked 6/8'},
+  {name:'March / polka',ts:2,steps:'B-D-',note:'Bass, strum'}
+];
+const PAT_RE=/^[DUduxBb1-6\-]+$/;
+function allPatterns(){return PATTERNS.concat((SET.customPatterns||[]).map(p=>({...p,custom:true})))}
+function findPattern(name){return name?allPatterns().find(p=>p.name===name):null}
+function defaultPattern(ts){return findPattern(({4:'Pop / folk (Old Faithful)',3:'Waltz',6:'6/8 ballad',2:'March / polka'})[ts])||null}
+const SYM={D:'↓',U:'↑',d:'↓',u:'↑',x:'✕',B:'B',b:'b','-':'·'};
+function patHtml(p,cur){return [...p.steps].map((c,i)=>`<i class="ps${c==='d'||c==='u'?' soft':''}${c==='-'?' rest':''}${i===cur?' now':''}" data-i="${i}">${SYM[c]||c}</i>`).join('')}
+
+// play one step of a pattern on a chord shape
+function playStroke(ch,frets,t,ring,vol){
+  const c=ac(),played=[];frets.forEach((f,s)=>{if(f>=0)played.push({s,m:TUNING[s]+f})});if(!played.length)return;
+  let notes=[],gap=0,v=vol,hold=ring;
+  if(ch==='D'||ch==='d'){notes=played;gap=0.011;if(ch==='d')v*=0.5}
+  else if(ch==='U'||ch==='u'){notes=played.filter(n=>n.s>=2).reverse();gap=0.009;v*=ch==='u'?0.35:0.65}
+  else if(ch==='x'){notes=played;gap=0.004;v*=0.45;hold=0.025}
+  else if(ch==='B'){notes=[played[0]];v*=0.9;hold=ring*1.6}
+  else if(ch==='b'){notes=[played[1]||played[0]];v*=0.85;hold=ring*1.6}
+  else if(ch>='1'&&ch<='6'){const want=6-(+ch);const p=played.find(n=>n.s===want)||played.find(n=>n.s>want)||played[played.length-1];notes=[p];v*=0.8;hold=ring*1.8}
+  notes.forEach((n,i)=>{const s=c.createBufferSource();s.buffer=ksBuf(n.m);const g=c.createGain();const st=t+i*gap;
+    g.gain.setValueAtTime(v*(0.9-i*0.03),st);g.gain.setTargetAtTime(0,st+hold,ch==='x'?0.01:0.06);
+    s.connect(g);g.connect(out());s.start(st);s.stop(st+hold+0.5)});
+}
+// schedule one beat of a pattern; returns the queue items for highlighting
+function schedPatternBeat(p,frets,barBeat,t,beatDur,vol){
+  const L=p.steps.length,spb=L/p.ts,items=[];
+  for(let k=0;k<spb;k++){
+    const idx=Math.floor(barBeat*spb+k)%L,ch=p.steps[idx];
+    let tk=t+beatDur*(k/spb);if(p.swing&&spb===2&&k===1)tk=t+beatDur*2/3;
+    items.push({t:tk,step:idx});
+    if(ch==='-'||!vol)continue;
+    let rests=0;while(rests<L-1&&p.steps[(idx+1+rests)%L]==='-')rests++;
+    playStroke(ch,frets,tk,(1+rests)*beatDur/spb+0.04,vol);
+  }
+  return items;
+}
+function shapeFor(chordName){const ci=chordInfo(chordName);const v=ci&&voicings(ci.root,ci.type,ci.bass)[0];return v?v.frets:null}
+
+// pattern library browser (preview, choose, add your own)
+function patternModal(ts,onPick){
+  const groups=[2,3,4,6].map(n=>({n,list:allPatterns().filter(p=>p.ts===n)})).filter(g=>g.list.length);
+  openModal(`<div class="row" style="justify-content:space-between"><b>Strumming patterns</b><button onclick="closeModal()">✕</button></div>
+   <div class="hint">↓ down · ↑ up · grey = soft · ✕ muted chuck · B bass · b alternate bass · 1–6 pick a string (6 = low E) · · rest. Tap ▶ to hear two bars.</div>
+   ${groups.map(g=>`<div class="section" style="margin-top:12px">${g.n===6?'6/8':g.n+'/4'}${g.n===ts?' · this song':''}</div>`+g.list.map(p=>`<div class="song" style="cursor:default"><div style="flex:1;min-width:0"><div class="t">${esc(p.name)}${p.custom?' <span class="small muted">(yours)</span>':''}</div><div class="pstrip">${patHtml(p,-1)}</div><div class="a">${esc(p.note||'')}${p.swing?' · swing':''}</div></div><button class="sm" data-pv="${esc(p.name)}">▶</button>${onPick?`<button class="sm pri" data-use="${esc(p.name)}">Use</button>`:''}${p.custom?`<button class="sm danger" data-del="${esc(p.name)}">✕</button>`:''}</div>`).join('')).join('')}
+   <div class="card" style="margin-top:12px"><b>Add your own</b>
+     <div class="row" style="margin-top:6px"><input type="text" id="cpName" placeholder="Name" style="flex:1"><select id="cpTs"><option value="4">4/4</option><option value="3">3/4</option><option value="6">6/8</option><option value="2">2/4</option></select></div>
+     <div class="row" style="margin-top:6px"><input type="text" id="cpSteps" placeholder="e.g. D-DU-UDU" style="flex:1;font-family:ui-monospace,monospace"><label class="small"><input type="checkbox" id="cpSw"> swing</label></div>
+     <div class="row" style="margin-top:6px"><button id="cpTry">▶ Try</button><button class="pri" id="cpSave">Save</button></div>
+     <div class="hint">Steps must fill a bar evenly: 4/4 uses 4, 8 or 16 symbols; 3/4 uses 3, 6 or 12.</div></div>`);
+  const readCustom=()=>{const steps=$('cpSteps').value.trim().replace(/\s+/g,''),n=+$('cpTs').value;
+    if(!PAT_RE.test(steps)){toast('Use only D U d u x B b 1-6 -');return null}if(steps.length%n){toast(`Length must divide by ${n}`);return null}
+    return {name:$('cpName').value.trim()||'My pattern',ts:n,steps,swing:$('cpSw').checked}};
+  $('mbox').onclick=e=>{
+    const b=e.target.closest('button');if(!b)return;
+    if(b.dataset.pv)previewPattern(findPattern(b.dataset.pv));
+    else if(b.dataset.use){closeModal();onPick(b.dataset.use)}
+    else if(b.dataset.del){SET.customPatterns=(SET.customPatterns||[]).filter(p=>p.name!==b.dataset.del);DB.set('settings',SET);patternModal(ts,onPick)}
+    else if(b.id==='cpTry'){const p=readCustom();if(p)previewPattern(p)}
+    else if(b.id==='cpSave'){const p=readCustom();if(!p)return;if(findPattern(p.name)&&!(SET.customPatterns||[]).some(x=>x.name===p.name)){toast('That name is taken');return}
+      SET.customPatterns=(SET.customPatterns||[]).filter(x=>x.name!==p.name).concat([p]);DB.set('settings',SET);toast('Saved');patternModal(ts,onPick)}
+  };
+}
+function previewPattern(p){
+  if(!p)return;const c=ac(),bpm=P.bpm||90,bd=60/bpm;let t=c.currentTime+0.08;
+  const shapes=[shapeFor('G'),shapeFor('C')];
+  for(let bar=0;bar<2;bar++)for(let beat=0;beat<p.ts;beat++){schedPatternBeat(p,shapes[bar],beat,t,bd,SET.strum||0.5);t+=bd}
+}
+
 /* ===== PLAYER ===== */
 const P={song:null,doc:null,tl:null,ts:4,bpm:80,t:0,capo:0,click:true,strum:true,countIn:true,loop:null,loopVal:'',playing:false,timer:0,raf:0,queue:[],ev:0,beatIn:0,countLeft:0,nextTime:0,cur:-1,ab:0,evGroup:[],taps:[]};
+function patternOf(e){if(P.patSel==='one')return null;if(P.patSel&&P.patSel!=='song')return findPattern(P.patSel);return findPattern(e&&e.strum)||defaultPattern(P.ts)}
+let stripPat=null;function drawStrip(p,cur){if(p!==stripPat){stripPat=p;$('patStrip').innerHTML=p?patHtml(p,cur):''}else if(p){$('patStrip').querySelectorAll('.ps').forEach((x,i)=>x.classList.toggle('now',i===cur))}}
 const dispC=(c,tr)=>transposeStr(c,P.t-P.capo+(tr||0),'auto');
 function applyPlayerPrefs(){P.click=SET.pClick!==false;P.strum=!!SET.pStrum;P.countIn=SET.pCount!==false;$('clkBtn').classList.toggle('on',P.click);$('strBtn').classList.toggle('on',P.strum);$('cntBtn').classList.toggle('on',P.countIn);const f=SET.font||16;$('fVal').textContent=f;$('pSheet').style.fontSize=f+'px';$('eVisual').style.fontSize=(f+1)+'px'}
-function openPlayer(s){if(!s)return;stopPlay();applyPlayerPrefs();P.song=s;P.doc=parsed(s);P.bpm=P.doc.meta.bpm||80;P.t=0;P.capo=0;P.loop=null;P.loopVal='';P.cur=-1;renderPlayer();showView('play')}
+function openPlayer(s){if(!s)return;stopPlay();applyPlayerPrefs();P.patSel='song';
+  if(s.premium&&!s.cloud&&!isPremiumUser(ME)&&!(ME&&ME.role==='admin'))s={id:s.id+':pv',rev:s.rev,text:makePreview(s.text),lockedLocal:true,src:s};P.song=s;P.doc=parsed(s);P.bpm=P.doc.meta.bpm||80;P.t=0;P.capo=0;P.loop=null;P.loopVal='';P.cur=-1;renderPlayer();showView('play');renderCloudBar();updFavBtn()}
 function renderPlayer(){
   if(!P.song){$('pEmpty').style.display='';$('pWrap').style.display='none';return}
   $('pEmpty').style.display='none';$('pWrap').style.display='';
   const d=P.doc;P.ts=d.meta.ts||4;P.tl=buildTimeline(d);
   $('pTitle').textContent=d.meta.title||'Untitled';
   const key=d.meta.key?transposeStr(d.meta.key,P.t,'auto'):'';
+  {const st=statusOf(d);$('pStatus').innerHTML=st&&st!=='ready'?`<div class="stbar ${STATUS[st].cls}">${STATUS[st].long}${st==='imported'?'. Chords in the lyrics play one bar each until you set their beats in Studio; intro and interlude bars already have the right beats.':st==='scanned'?'. Every chord plays one bar until you set the beats in Studio.':'.'} <button class="sm" onclick="$('pEdit').click()">✎ Fix in Studio</button></div>`:''}
   $('pSub').textContent=[d.meta.artist,key?'Key '+key+(P.capo?` (capo ${P.capo}: play ${transposeStr(d.meta.key,P.t-P.capo,'auto')} shapes)`:''):'',P.ts+'/4'].filter(Boolean).join(' · ');
   $('bVal').textContent=P.bpm;$('kVal').textContent=(P.t>0?'+':'')+P.t;$('cVal').textContent=P.capo;
   $('beats').innerHTML=Array.from({length:P.ts},(_,i)=>`<i data-b="${i}"></i>`).join('');
@@ -676,6 +844,9 @@ function renderPlayer(){
   // loop options
   const opts=[['','🔁 Loop: off'],['all','🔁 Whole song']];d.order.forEach((n,oi)=>opts.push(['s'+oi,'🔁 '+n+(d.order.indexOf(n)!==oi?' (repeat)':'')]));opts.push(['ab','🔁 A–B: tap two chords…']);
   if(P.loop&&P.loopVal==='abset')opts.push(['abset',`🔁 A–B set`]);
+  {const sp=findPattern(d.meta.strum)||defaultPattern(P.ts);const ps=allPatterns().filter(p=>p.ts===P.ts);
+   $('patSel').innerHTML=[['song','🎸 Song pattern'+(sp?': '+sp.name:'')],['one','🎸 One strum per chord'],...ps.map(p=>[p.name,'🎸 '+p.name]),['__lib','🎸 All patterns / add your own…']].map(([v,t])=>`<option value="${esc(v)}"${v===P.patSel?' selected':''}>${esc(t)}</option>`).join('');
+   stripPat=undefined;}
   $('loopSel').innerHTML=opts.map(([v,t])=>`<option value="${v}"${v===P.loopVal?' selected':''}>${esc(t)}</option>`).join('');
   markLoop();showNow(P.cur>=0?P.cur:0,false);
 }
@@ -685,6 +856,7 @@ function showNow(i,scroll){
   if(!ev.length){$('nowC').textContent='–';$('nxtC').textContent='';$('nowDg').innerHTML='';return}
   i=Math.max(0,Math.min(ev.length-1,i));const e=ev[i];
   const els=document.querySelectorAll('#pSheet .g'+P.evGroup[i]);els.forEach(x=>x.classList.add('now'));
+  drawStrip(patternOf(e),P.playing?-1:-1);
   const dc=dispC(e.c,e.tr);$('nowC').textContent=dc;
   const nx=ev[i+1];$('nxtC').innerHTML=nx?`next <b style="color:var(--tx)">${esc(dispC(nx.c,nx.tr))}</b><br>${e.b} beat${e.b>1?'s':''}`:'';
   const ci=chordInfo(dc);const v=ci&&voicings(ci.root,ci.type,ci.bass)[0];$('nowDg').innerHTML=v?diagramSVG(v,ci.root,true):'';
@@ -709,7 +881,7 @@ function startPlay(from){
   try{navigator.wakeLock&&navigator.wakeLock.request('screen').then(w=>P.wake=w).catch(()=>{})}catch(e){}
 }
 function stopPlay(){P.playing=false;clearInterval(P.timer);cancelAnimationFrame(P.raf);P.queue=[];$('pPlay').textContent=$('pPlay2').textContent='▶';$('pSheet').classList.remove('playing');document.querySelectorAll('#beats i').forEach(b=>b.className='');if(P.wake){try{P.wake.release()}catch(e){}P.wake=null}}
-function sched(){const c=ac();while(P.playing&&P.nextTime<c.currentTime+0.15){schedBeat(P.nextTime);P.nextTime+=60/P.bpm}}
+function sched(){const c=ac();let n=0;while(P.playing&&P.nextTime<c.currentTime+0.15){schedBeat(P.nextTime);P.nextTime+=60/P.bpm;n++}if(n)P.queue.sort((a,b)=>a.t-b.t)}
 function schedBeat(t){
   const ts=P.ts;
   if(P.countLeft>0){const k=ts-P.countLeft;clickAt(t,k===0,SET.click);P.queue.push({t,count:P.countLeft,beat:k,cnt:true});P.countLeft--;return}
@@ -717,7 +889,9 @@ function schedBeat(t){
   if(P.ev>=ev.length){if(P.loop&&P.loop.all)P.ev=0;else{P.queue.push({t,end:true});P.playing=false;clearInterval(P.timer);return}}
   const e=ev[P.ev],bb=(e.start+P.beatIn)%ts;
   if(P.click)clickAt(t,bb===0,SET.click);
-  if(P.beatIn===0){P.queue.push({t,ev:P.ev});if(P.strum){const ci=chordInfo(dispC(e.c,e.tr));const v=ci&&voicings(ci.root,ci.type,ci.bass)[0];if(v)playMidisAt(v.frets.map((f,s)=>f>=0?TUNING[s]+f:null).filter(x=>x!=null),0.022,t,SET.strum)}}
+  const pat=patternOf(e),frets=shapeFor(dispC(e.c,e.tr));
+  if(P.beatIn===0){P.queue.push({t,ev:P.ev});if(P.strum&&!pat&&frets)playMidisAt(frets.map((f,s)=>f>=0?TUNING[s]+f:null).filter(x=>x!=null),0.022,t,SET.strum)}
+  if(pat&&frets)for(const it of schedPatternBeat(pat,frets,bb,t,60/P.bpm,P.strum?SET.strum:0))P.queue.push({...it,pat});
   P.queue.push({t,beat:bb});
   P.beatIn++;
   if(P.beatIn>=e.b){P.beatIn=0;P.ev++;if(P.loop&&!P.loop.all&&P.ev>P.loop.b)P.ev=P.loop.a}
@@ -728,6 +902,7 @@ function tick(){
     if(q.end){stopPlay();toast('End');return}
     if(q.ev!=null){P.cur=q.ev;showNow(q.ev,true)}
     if(q.cnt)$('nowC').textContent=q.count;
+    if(q.step!=null)drawStrip(q.pat,q.step);
     if(q.beat!=null)document.querySelectorAll('#beats i').forEach((b,i)=>b.className=i===q.beat?'on'+(i===0?' d':''):'');
   }
   if(P.playing||P.queue.length)P.raf=requestAnimationFrame(tick);
@@ -745,7 +920,19 @@ $('strBtn').onclick=e=>{P.strum=!P.strum;SET.pStrum=P.strum;DB.set('settings',SE
 $('cntBtn').onclick=e=>{P.countIn=!P.countIn;SET.pCount=P.countIn;DB.set('settings',SET);e.currentTarget.classList.toggle('on',P.countIn)};
 const setFont=d=>{SET.font=Math.max(11,Math.min(30,(SET.font||16)+d));DB.set('settings',SET);applyPlayerPrefs();if(P.playing&&P.cur>=0)showNow(P.cur,true)};
 $('fUp').onclick=()=>setFont(1);$('fDn').onclick=()=>setFont(-1);
-$('pEdit').onclick=()=>openStudio(P.song);
+function updFavBtn(){const k=favKeyOf(P.song),b=$('pFav');b.style.display=k?'':'none';b.textContent=FAV.has(k)?'★':'☆';b.classList.toggle('on',FAV.has(k))}
+$('pFav').onclick=async()=>{await toggleFav(favKeyOf(P.song));updFavBtn()};
+$('pPrint').onclick=()=>printSong();
+$('patSel').onchange=e=>{const v=e.target.value;if(v==='__lib'){e.target.value=P.patSel;patternModal(P.ts,name=>{P.patSel=name;renderPlayer()});return}P.patSel=v;stripPat=undefined;showNow(Math.max(0,P.cur),false)};
+$('pEdit').onclick=async()=>{
+  const s=P.song;if(!s)return;
+  if(s.lockedLocal||(s.cloud&&s.cloud.locked)){toast('Premium song: subscribe to edit or copy it');return}
+  if(s.cloud){ // my own published song → its local copy; someone else's → start my own version
+    const a=s.cloud;let loc=SONGS.find(x=>x.cloudId===a.id);
+    if(!loc){const own=ME&&a.owner===ME.id;loc={id:uid(),rev:Date.now(),text:a.text,dirty:true,cloudId:own?a.id:undefined};SONGS.push(loc);await DB.put(loc);indexSong(loc);if(!own)toast('Editing your own copy')}
+    openStudio(loc);return}
+  if(s.id==='__preview'){openStudio(P.backTo||null);return}
+  openStudio(s)};
 $('loopSel').onchange=e=>{
   const v=e.target.value;P.loopVal=v;P.ab=0;
   if(!v)P.loop=null;else if(v==='all')P.loop={all:true};
@@ -766,13 +953,16 @@ $('ochips').onclick=e=>{const b=e.target.closest('[data-oi]');if(!b)return;const
 const E={song:null,doc:null,mode:'vis',undo:[],dirty:false,move:null,taps:[]};
 function openStudio(s){
   stopPlay();
-  E.song=s;E.doc=s?parseSong(s.text):parseSong(`{title: }\n{tempo: 80}\n{time: 4/4}\n\n{section: Verse 1}\n\n`);
+  E.song=s;E.doc=s?parseSong(s.text):parseSong(`{title: }\n{tempo: 80}\n{time: 4/4}\n{status: wip}\n\n{section: Verse 1}\n\n`);
   if(!s&&!E.doc.sections[0].lines.length)E.doc.sections[0].lines.push({text:'',chords:[]});
   E.undo=[];E.dirty=false;E.move=null;setMode('vis');fillMeta();renderStudio();showView('studio');
 }
-function fillMeta(){const m=E.doc.meta;$('mTitle').value=m.title;$('mArtist').value=m.artist;$('mComposer').value=m.composer;$('mKey').value=m.key;$('mBpm').value=m.bpm||'';$('mTs').value=String(m.ts||4);$('mTags').value=m.tags}
-function readMeta(){const m=E.doc.meta;m.title=$('mTitle').value.trim();m.artist=$('mArtist').value.trim();m.composer=$('mComposer').value.trim();m.key=$('mKey').value.trim();m.bpm=parseFloat($('mBpm').value)||0;m.ts=parseInt($('mTs').value)||4;m.tags=$('mTags').value.trim()}
-['mTitle','mArtist','mComposer','mKey','mBpm','mTs','mTags'].forEach(id=>$(id).addEventListener('change',()=>{readMeta();E.dirty=true;if(id==='mTs')renderStudio()}));
+function fillStrumSel(){const ts=E.doc.meta.ts||4,cur=E.doc.meta.strum||'';$('mStrum').innerHTML=`<option value="">Default for ${ts}/4${defaultPattern(ts)?' ('+esc(defaultPattern(ts).name)+')':''}</option>`+allPatterns().filter(p=>p.ts===ts||p.name===cur).map(p=>`<option${p.name===cur?' selected':''}>${esc(p.name)}</option>`).join('')}
+function fillMeta(){const m=E.doc.meta;fillStrumSel();$('mStatus').value=m.status||'';$('mTitle').value=m.title;$('mArtist').value=m.artist;$('mComposer').value=m.composer;$('mKey').value=m.key;$('mBpm').value=m.bpm||'';$('mTs').value=String(m.ts||4);$('mTags').value=m.tags}
+function readMeta(){const m=E.doc.meta;m.title=$('mTitle').value.trim();m.artist=$('mArtist').value.trim();m.composer=$('mComposer').value.trim();m.key=$('mKey').value.trim();m.bpm=parseFloat($('mBpm').value)||0;m.ts=parseInt($('mTs').value)||4;m.tags=$('mTags').value.trim();m.strum=$('mStrum').value;m.status=$('mStatus').value}
+['mTitle','mArtist','mComposer','mKey','mBpm','mTs','mTags','mStrum','mStatus'].forEach(id=>$(id).addEventListener('change',()=>{readMeta();E.dirty=true;if(id==='mTs'){fillStrumSel();renderStudio()}}));
+$('mReady').onclick=()=>{$('mStatus').value='ready';readMeta();E.dirty=true;toast('Marked ready – tap Save')};
+$('mStrumLib').onclick=()=>patternModal(E.doc.meta.ts||4,name=>{snapshot();E.doc.meta.strum=name;fillStrumSel();renderStudio()});
 $('mTap').onclick=()=>tapTempo(E.taps,b=>{$('mBpm').value=b;readMeta();E.dirty=true});
 function snapshot(){readMeta();E.undo.push(serSong(E.doc));if(E.undo.length>60)E.undo.shift();E.dirty=true}
 $('eUndo').onclick=()=>{if(!E.undo.length){toast('Nothing to undo');return}E.doc=parseSong(E.undo.pop());fillMeta();renderStudio()};
@@ -790,7 +980,8 @@ function renderStudio(){
   $('sEmpty').style.display='none';$('sWrap').style.display='';
   const d=E.doc,ts=d.meta.ts||4;let h='';
   d.sections.forEach((s,si)=>{
-    h+=`<div class="esec"><div class="eh"><input type="text" class="my" data-sn="${si}" value="${esc(s.name)}"><button class="sm" data-act="sup" data-si="${si}">↑</button><button class="sm" data-act="sdn" data-si="${si}">↓</button><button class="sm danger" data-act="sdel" data-si="${si}">✕</button></div>`;
+    h+=`<div class="esec"><div class="eh"><input type="text" class="my" data-sn="${si}" value="${esc(s.name)}"><button class="sm" data-act="sup" data-si="${si}">↑</button><button class="sm" data-act="sdn" data-si="${si}">↓</button><button class="sm danger" data-act="sdel" data-si="${si}">✕</button></div>
+      <div class="row" style="margin:-2px 0 6px"><span class="small muted">Strum</span><select class="sm" data-sstrum="${si}" style="flex:1;padding:4px 6px;font-size:13px"><option value="">Same as song</option>${allPatterns().filter(p=>p.ts===ts||p.name===s.strum).map(p=>`<option${p.name===s.strum?' selected':''}>${esc(p.name)}</option>`).join('')}</select></div>`;
     s.lines.forEach((l,li)=>{
       h+=`<div class="eline"><div class="body lyr">`;
       if(l.comment!=null)h+=`<span class="comment">${esc(l.comment)}</span>`;
@@ -817,7 +1008,7 @@ function renderStudio(){
   $('orderChips').innerHTML=d.order.map((n,i)=>{const o=oItem(n);return `<span class="chip">${esc(o.name)} <button class="sm" style="border:0;padding:0 4px;color:${o.tr?'var(--ok)':'var(--mu)'}" data-otr="${i}" title="Key change for this repeat">${o.tr?(o.tr>0?'+':'')+o.tr:'±0'}</button><button class="sm" style="border:0;padding:0 4px" data-oup="${i}">↑</button><button class="sm danger" style="border:0;padding:0 4px" data-odel="${i}">✕</button></span>`}).join('')||'<span class="muted small">empty – nothing will play</span>';
   $('orderAdd').innerHTML=d.sections.map(s=>`<button class="sm" data-oadd="${esc(s.name)}">＋ ${esc(s.name)}</button>`).join('')+`<button class="sm" data-oreset="1">Reset = in sheet order</button>`;
 }
-$('eVisual').addEventListener('change',e=>{const t=e.target;if(t.dataset.sn!=null){const s=E.doc.sections[+t.dataset.sn],old=s.name,nw=t.value.trim()||old;if(E.doc.sections.some(x=>x!==s&&x.name===nw)){toast('Name already used');t.value=old;return}snapshot();s.name=nw;E.doc.order=E.doc.order.map(n=>{const o=oItem(n);return o.name===old?nw+(o.tr?' '+(o.tr>0?'+':'')+o.tr:''):n});renderStudio()}});
+$('eVisual').addEventListener('change',e=>{const t=e.target;if(t.dataset.sstrum!=null){snapshot();E.doc.sections[+t.dataset.sstrum].strum=t.value;return}if(t.dataset.sn!=null){const s=E.doc.sections[+t.dataset.sn],old=s.name,nw=t.value.trim()||old;if(E.doc.sections.some(x=>x!==s&&x.name===nw)){toast('Name already used');t.value=old;return}snapshot();s.name=nw;E.doc.order=E.doc.order.map(n=>{const o=oItem(n);return o.name===old?nw+(o.tr?' '+(o.tr>0?'+':'')+o.tr:''):n});renderStudio()}});
 $('eVisual').addEventListener('click',e=>{
   const d=E.doc;const a=e.target.closest('[data-act]');
   if(a){const si=+a.dataset.si,li=+a.dataset.li,s=d.sections[si],act=a.dataset.act;
@@ -903,6 +1094,7 @@ $('eHelp').onclick=()=>openModal(`<div class="row" style="justify-content:space-
  <code>{section: Chorus}</code> starts a part. <code>{order: Intro, Verse 1, Chorus, Chorus +1}</code> sets play order; <code>+1</code> plays that repeat one semitone higher (key change).<br>
  <code>[C]</code> = chord for one bar. <code>[G:2]</code> = 2 beats. Chord-only line: <code>[C][G][Am][F]</code><br>
  Each chord lasts until the next one; the player moves through chords by beats at the song tempo.</div>`);
+$('ePub').onclick=()=>publishModal();
 $('ePlay').onclick=()=>{readMeta();if(E.mode==='txt')E.doc=parseSong($('eTA').value);const tmp={id:'__preview',rev:Date.now(),text:serSong(E.doc)};parsedCache.delete('__preview');openPlayer(tmp);P.backTo=E.song};
 $('eSave').onclick=async()=>{
   readMeta();if(E.mode==='txt')E.doc=parseSong($('eTA').value);
@@ -1077,7 +1269,7 @@ function draftText(pages){
   const L=[`{title: ${meta.title||''}}`];if(meta.artist)L.push(`{artist: ${meta.artist}}`);if(meta.composer)L.push(`{composer: ${meta.composer}}`);
   if(meta.key)L.push(`{key: ${meta.key}}`);L.push('{time: 4/4}');
   if(meta.keyTo)L.push(`{comment: Key ${meta.key} → ${meta.keyTo}}`);
-  L.push(`{order: ${order.join(', ')}}`);
+  L.push('{status: scanned}');L.push(`{order: ${order.join(', ')}}`);
   for(const s of secs){L.push('',`{section: ${s.name}}`,...s.lines)}
   return L.join('\n')+'\n';
 }
@@ -1121,8 +1313,146 @@ function convertPasted(src){
   }
   return out.join('\n');
 }
-$('pasteGo').onclick=()=>{const v=$('pasteTA').value;if(!v.trim())return;let t=convertPasted(v);if(!/\{section:/.test(t))t='{section: Verse 1}\n'+t;$('draftTA').value='{title: }\n{time: 4/4}\n\n'+t;$('draftCard').style.display='';$('draftCard').scrollIntoView({behavior:'smooth'})};
+$('pasteGo').onclick=()=>{const v=$('pasteTA').value;if(!v.trim())return;
+  if(/\[[A-G][#b]?[^\]\s]{0,8}\]/.test(v)&&!v.split('\n').some(l=>chordLineTokensOnly(l))){$('draftTA').value=convertInline(v,{}).text.replace('{status: imported}','{status: scanned}');$('draftCard').style.display='';$('draftCard').scrollIntoView({behavior:'smooth'});return}let t=convertPasted(v);if(!/\{section:/.test(t))t='{section: Verse 1}\n'+t;$('draftTA').value='{title: }\n{time: 4/4}\n{status: scanned}\n\n'+t;$('draftCard').style.display='';$('draftCard').scrollIntoView({behavior:'smooth'})};
 $('draftGo').onclick=()=>{const tmp={id:null,text:$('draftTA').value};openStudio(null);E.doc=parseSong(tmp.text);fillMeta();renderStudio();toast('Add a title, check chords, then Save')};
+
+/* ===== IMPORT: inline-chord text (chordmyanmar-style export) → song format =====
+   Handles: [C] inline chords, bar rows |[C]___ |[Gm]_[C]_ | (1 beat per chord + 1 per underscore),
+   :|| … ||: repeated bar rows, ( … ) x2 repeated lyric groups, [INTRO]/[VERSE 1]/[CHORUS] labels,
+   \[FINE \] / \[FADE OUT \] end marks, [(F)] optional chords, [G Dm] two chords, [|] [-] marks,
+   Key/Capo info lines, invisible characters. */
+const SEC_LABEL=/^\s*\[\s*(INTRO|VERSE\s*\d*|CHORUS\s*\d*|PRE[- ]?CHORUS|BRIDGE|SOLO|INSTRUMENTAL|INTERLUDE|ENDING|OUTRO|CODA|HOOK|REFRAIN)\s*\]\s*$/i;
+const tcase=s=>s.toLowerCase().replace(/\s+/g,' ').replace(/(^|[ -])\w/g,m=>m.toUpperCase());
+function chordList(tok){ // "[(F)]" "[G Dm]" "[Am7]" → ['F'] ['G','Dm'] ['Am7']; non-chords → null
+  const parts=tok.replace(/[()]/g,' ').trim().split(/\s+/).filter(Boolean);
+  if(!parts.length)return null;
+  const out=parts.map(p=>p.replace(/^[,;]+|[,;]+$/g,'')).filter(Boolean);
+  return out.length&&out.every(p=>parseChord(p))?out:null;
+}
+function parseBarRow(ln,ts){
+  const body=ln.replace(/^\s*:?\|\|?:?/,'').replace(/:?\|\|?:?\s*$/,'');
+  const bars=body.split('|');const out=[];
+  for(const bar of bars){
+    const re=/\[([^\]]*)\]|_/g;let m,inBar=[];
+    while((m=re.exec(bar))){
+      if(m[0]==='_'){if(inBar.length)inBar[inBar.length-1].b++;else inBar.push({c:null,b:1});continue}
+      const cl=chordList(m[1]);if(!cl)continue;
+      cl.forEach((c,i)=>inBar.push({c,b:1}));
+    }
+    if(!inBar.length){if(bar.trim()==='')continue;inBar=[{c:null,b:ts}]}
+    if(inBar.length===1&&inBar[0].c===null)inBar[0].b=Math.max(inBar[0].b,ts);
+    for(const x of inBar){if(x.c===null){if(out.length)out[out.length-1].b+=x.b}else out.push({...x})}
+  }
+  return out;
+}
+const barSum=ln=>{const body=ln.replace(/^\s*:?\|\|?:?/,'').replace(/:?\|\|?:?\s*$/,'');return body.split('|').filter(b=>b.trim()).map(b=>((b.match(/\[[^\]]*\]/g)||[]).filter(t=>chordList(t.slice(1,-1))).length||0)+(b.match(/_/g)||[]).length)};
+const isBarRow=ln=>/\|/.test(ln)&&!/[က-႟]/.test(ln)&&/\[|_/.test(ln)&&!/[A-Za-z]{3,}/.test(ln.replace(/\[[^\]]*\]/g,''));
+function fixPositions(raw){ // collapse spaces while keeping chord positions, then snap to syllables
+  let text='',map=[];const src=raw.textRaw;
+  for(let i=0;i<src.length;i++){map[i]=text.length;const ch=src[i];if(/\s/.test(ch)&&(text===''||/\s$/.test(text)))continue;text+=ch}
+  map[src.length]=text.length;text=text.replace(/\s+$/,'');
+  const chords=raw.chords.map(c=>({...c,pos:Math.min(text.length,map[c.pos]??text.length)}));
+  chords.forEach(c=>c.pos=snapPos(text,c.pos));
+  return {text,chords};
+}
+function convertInline(src,info){
+  info=info||{};
+  let t=String(src||'').replace(/\r/g,'').replace(/[​‌‍‎‏﻿⁠]/g,'').replace(/[ -  　]/g,' ').replace(/…/g,'...');
+  t=t.replace(/\\\[/g,'⟦').replace(/\\\]/g,'⟧');
+  const lines=t.split('\n').map(l=>l.replace(/\\+\s*$/,'').replace(/\s+$/,''));
+  // time signature from bar rows (most common bar length)
+  const sums={};lines.filter(isBarRow).forEach(l=>barSum(l).forEach(n=>{if(n)sums[n]=(sums[n]||0)+1}));
+  const top=Object.entries(sums).sort((a,b)=>b[1]-a[1])[0];const ts=top&&[2,3,4,6].includes(+top[0])?+top[0]:4;
+  const secs=[],order=[],notes=[],warn=[];let cur=null,part=0,inter=0,ref=0,anyLyric=false;
+  const newSec=(name,kind)=>{let nm=name,k=2;while(secs.some(s=>s.name===nm))nm=name+' ('+(k++)+')';cur={name:nm,lines:[],kind};secs.push(cur);order.push(nm);return cur};
+  for(const raw of lines){
+    if(!raw.trim())continue;
+    const lit=/^\s*⟦\s*(.*?)\s*⟧\s*$/.exec(raw);
+    if(lit&&/^(fine|fade out|fade|end|ending)\\?$/i.test(lit[1].replace(/\\/g,'').trim())){(cur||newSec('Part 1','lyric')).lines.push({comment:tcase(lit[1].replace(/\\/g,'').trim())});continue}
+    let ln=raw.replace(/⟦/g,'(').replace(/⟧/g,')').replace(/\\/g,'');
+    const lab=SEC_LABEL.exec(ln);if(lab){newSec(tcase(lab[1]),'label');continue}
+    if(/^\s*(recommended playing position|(original\s+)?key\s*[-:–]|capo\s*[-:–])/i.test(ln)){notes.push(ln.trim());continue}
+    if(isBarRow(ln)){
+      const rep=/^\s*:\|\|/.test(ln)||/\|\|:\s*$/.test(ln)||/^\s*\|\|:/.test(ln)?2:1;
+      const ch=parseBarRow(ln,ts);if(!ch.length)continue;
+      if(!cur||(cur.kind!=='inst'&&cur.kind!=='label')||cur.lines.some(l=>l.text))newSec(anyLyric?'Interlude'+(inter++?' '+inter:''):'Intro','inst');
+      for(let r=0;r<rep;r++)cur.lines.push({text:'',chords:ch.map(x=>({pos:0,c:x.c,b:x.b===ts?null:x.b}))});
+      continue;
+    }
+    // ( … ) xN groups of lyric lines
+    const cm=/\)\s*x\s*(\d+)\s*$/i.exec(ln);let times=0;if(cm){times=+cm[1];ln=ln.slice(0,cm.index)}
+    let open=false;if(/^\s*\(/.test(ln)&&!/\)/.test(ln.replace(/\[[^\]]*\]/g,''))){open=true;ln=ln.replace(/^\s*\(\s*/,'')}
+    if(open)newSec('Refrain'+(ref++?' '+ref:''),'group');
+    else if(!cur||cur.kind==='inst'||cur.kind==='closed')newSec('Part '+(++part),'lyric');
+    const r=fixPositions({textRaw:rebuildRaw(ln),chords:rebuildChords(ln)});
+    if(r.text||r.chords.length){cur.lines.push(r);if(/[က-႟A-Za-z]/.test(r.text))anyLyric=true}
+    if(cm){const s=cur;s.kind='closed';for(let k=1;k<times;k++)order.push(s.name)}
+  }
+  // last instrumental part after the lyrics = Outro
+  const last=secs[secs.length-1];
+  if(last&&last.kind==='inst'&&anyLyric&&/^Interlude/.test(last.name)){const old=last.name;last.name=secs.some(s=>s.name==='Outro')?'Outro 2':'Outro';for(let i=0;i<order.length;i++)if(order[i]===old)order[i]=last.name}
+  // key
+  let key=String(info.key||'').trim(),keyNote='';
+  const km=/^([A-G][#b]?m?)\s*(?:to|\/|-|→)\s*([A-G][#b]?m?)$/i.exec(key);
+  if(km){key=km[1];keyNote=`Key change: ${km[1]} → ${km[2]}`}
+  if(!key||!parseChord(key)){const first=secs.flatMap(s=>s.lines).flatMap(l=>l.chords||[])[0];key=first?first.c.replace(/^([A-G][#b]?m?).*$/,'$1'):''}
+  const intro=[...(keyNote?[{comment:keyNote}]:[]),...notes.map(n=>({comment:n}))];
+  if(intro.length&&secs.length)secs[0].lines.unshift(...intro);
+  if(!secs.length)warn.push('No lyrics or chords found');
+  const doc={meta:{title:info.title||'',artist:info.artist||'',composer:'',key,bpm:0,ts,tags:info.tags||'',strum:'',status:'imported',source:info.url||''},sections:secs.map(s=>({name:s.name,lines:s.lines})),order};
+  return {text:serSong(doc),warn,stats:{sections:secs.length,chords:secs.reduce((a,s)=>a+s.lines.reduce((b,l)=>b+(l.chords?l.chords.length:0),0),0)}};
+}
+// raw text with all bracket tokens resolved; chords recorded at their offsets
+function rebuildRaw(ln){let out='',last=0,m;const re=/\[([^\]]*)\]/g;while((m=re.exec(ln))){out+=ln.slice(last,m.index);last=re.lastIndex;const tok=m[1];if(chordList(tok)||/^[|\-\s]*$/.test(tok)||SEC_LABEL.test('['+tok+']'))continue;out+='('+tok+')'}return out+ln.slice(last)}
+function rebuildChords(ln){const ch=[];let len=0,last=0,m;const re=/\[([^\]]*)\]/g;while((m=re.exec(ln))){len+=m.index-last;last=re.lastIndex;const tok=m[1];const cl=chordList(tok);if(cl){cl.forEach(c=>ch.push({pos:len,c,b:null}));continue}if(/^[|\-\s]*$/.test(tok)||SEC_LABEL.test('['+tok+']'))continue;len+=tok.length+2}return ch}
+
+const XLSX_URL='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+function chordLineTokensOnly(l){const ts=l.trim().split(/\s+/).filter(Boolean);return ts.length>0&&ts.every(t=>parseChord(cleanTok(t)))}
+let IMP=[];
+const pickCol=(keys,names)=>keys.find(k=>names.includes(k.toLowerCase().trim()))||keys.find(k=>names.some(n=>k.toLowerCase().includes(n)));
+async function readImportFile(f){
+  const name=f.name.toLowerCase();
+  if(/\.(xlsx|xls|csv)$/.test(name)){
+    if(!window.XLSX)await loadScript(window.XLSX_LOCAL||XLSX_URL);
+    const wb=XLSX.read(await f.arrayBuffer(),{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{defval:''});if(!rows.length)throw new Error('The sheet is empty');
+    const keys=Object.keys(rows[0]);
+    const cBody=pickCol(keys,['chords_and_lyrics','chordpro','chords and lyrics','content','song text','text']);
+    const cTitle=pickCol(keys,['song','title','name','song title']),cArtist=pickCol(keys,['artist','singer']),cKey=pickCol(keys,['key']),cUrl=pickCol(keys,['song_url','url','link','source']),cComp=pickCol(keys,['composer','writer','songwriter']);
+    if(!cBody)throw new Error('No column with chords and lyrics found (expected e.g. "chords_and_lyrics")');
+    return rows.filter(r=>String(r[cBody]).trim()).map(r=>({title:String(r[cTitle]||'').trim(),artist:String(r[cArtist]||'').trim(),key:String(r[cKey]||'').trim(),url:String(r[cUrl]||'').trim(),composer:String(r[cComp]||'').trim(),body:String(r[cBody])}));
+  }
+  if(/\.json$/.test(name)){const j=JSON.parse(await f.text());const list=Array.isArray(j)?j:(j.songs||[]);return list.map(x=>({title:x.title||x.song||'',artist:x.artist||'',key:x.key||'',url:x.url||x.song_url||'',composer:x.composer||'',body:x.chords_and_lyrics||x.text||x.body||''}))}
+  return [{title:f.name.replace(/\.[^.]+$/,''),artist:'',key:'',url:'',composer:'',body:await f.text()}];
+}
+$('impPick').onclick=e=>{e.preventDefault();$('impIn').click()};
+$('impIn').onchange=async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;$('impList').innerHTML='<div class="hint">Reading…</div>';
+  try{
+    const rows=await readImportFile(f);
+    IMP=rows.map(r=>{const o=convertInline(r.body,{title:r.title,artist:r.artist,key:r.key,url:r.url});let text=o.text;if(r.composer)text=text.replace(/(\{artist:[^}]*\}\n)/,`$1{composer: ${r.composer}}\n`);
+      const d=parseSong(text);const k=songKeyOf(d.meta.title,d.meta.artist);const dup=SONGS.find(s=>{const m=parsed(s).meta;return songKeyOf(m.title,m.artist)===k});
+      return {...r,text,doc:d,dup,warn:o.warn,on:!dup}});
+    renderImport();
+  }catch(err){$('impList').innerHTML=`<div class="hint" style="color:#ff9a8a">${esc(err.message)}</div>`}
+};
+function renderImport(){
+  const n=IMP.filter(x=>x.on).length;
+  $('impList').innerHTML=`<div class="row" style="justify-content:space-between;margin:10px 0 6px"><span class="small"><b>${IMP.length}</b> songs found · ${n} selected</span><span class="row"><button class="sm" id="impAll">All</button><button class="sm" id="impNone">None</button></span></div>
+   ${IMP.map((x,i)=>{const d=x.doc;const parts=d.order.length,ch=d.sections.reduce((a,s)=>a+s.lines.reduce((b,l)=>b+(l.chords?l.chords.length:0),0),0);
+     return `<div class="song" style="cursor:default"><input type="checkbox" data-imp="${i}"${x.on?' checked':''} style="width:20px;height:20px"><div style="flex:1;min-width:0"><div class="t my">${esc(d.meta.title||'(no title)')}</div><div class="a my">${esc(d.meta.artist)} · key ${esc(d.meta.key||'?')} · ${parts} part${parts>1?'s':''} · ${ch} chords${x.dup?' · <span style="color:var(--ac)">already in library – will replace</span>':''}${x.warn.length?' · <span style="color:#ff9a8a">'+esc(x.warn.join('; '))+'</span>':''}</div></div><button class="sm" data-prev="${i}">View</button></div>`}).join('')}
+   <button class="pri" id="impGo" style="width:100%;margin-top:8px"${n?'':' disabled'}>Import ${n} song${n!==1?'s':''}</button>`;
+  $('impList').onclick=async e=>{
+    const t=e.target;
+    if(t.dataset.imp!=null){IMP[+t.dataset.imp].on=t.checked;renderImport();return}
+    if(t.dataset.prev!=null){const x=IMP[+t.dataset.prev];openPlayer({id:'__imp'+t.dataset.prev,rev:Date.now(),text:x.text});return}
+    if(t.id==='impAll'){IMP.forEach(x=>x.on=true);renderImport()}
+    if(t.id==='impNone'){IMP.forEach(x=>x.on=false);renderImport()}
+    if(t.id==='impGo'){let n=0;for(const x of IMP.filter(x=>x.on)){let s=x.dup;if(s){s.text=x.text;s.rev=Date.now();s.dirty=true}else{s={id:uid(),rev:Date.now(),text:x.text,dirty:true};SONGS.push(s)}await DB.put(s);indexSong(s);n++}
+      IMP=[];$('impList').innerHTML=`<div class="hint" style="color:var(--ok)">Imported ${n} songs. Find them in Library → 📱 Phone, filter “📥 Imported”.</div>`;setChip();renderList();toast(`Imported ${n} songs`)}
+  };
+}
 
 /* ===== SYNC / SETTINGS ===== */
 function setChip(){const on=navigator.onLine;const c=$('syncChip');c.classList.toggle('online',on);c.textContent=(on?'● online':'○ offline')+' · '+SONGS.length+' songs'}
@@ -1148,6 +1478,10 @@ $('setBtn').onclick=async()=>{
   const dirty=SONGS.filter(s=>s.dirty).length;const delN=(await DB.get('deleted',[])).length;
   openModal(`<div class="row" style="justify-content:space-between"><b>Settings & database</b><button onclick="closeModal()">✕</button></div>
   <div style="display:grid;gap:10px;margin-top:10px">
+   <div class="card" style="margin:0"><b>Accounts server</b><div class="hint">Demo keeps a pretend server on this phone for testing. Supabase is the real server (set it up with schema.sql).</div>
+     <div class="row" style="margin-top:6px"><select id="stBack"><option value="demo"${SET.backend!=='supabase'?' selected':''}>Demo (this phone)</option><option value="supabase"${SET.backend==='supabase'?' selected':''}>Supabase</option></select></div>
+     <input type="url" id="stSU" placeholder="https://xxxx.supabase.co" value="${esc(SET.supaUrl||'')}" style="width:100%;margin-top:6px"><input type="text" id="stSK" placeholder="anon public key" value="${esc(SET.supaKey||'')}" style="width:100%;margin-top:6px">
+     <button id="stBackGo" style="margin-top:6px">Apply</button></div>
    <div><div class="muted small">Online database URL (songs.json)</div><div class="row"><input type="url" id="stUrl" value="${esc(SET.dbUrl)}" style="flex:1"><button id="stSync">Check now</button></div>
      <div class="hint">Last update: ${SET.lastSync?new Date(SET.lastSync).toLocaleString():'never'}. Songs you edited here are never overwritten by the online copy.</div></div>
    <div class="card" style="margin:0"><b>Publish your edits</b><div class="hint">${dirty} song(s) edited on this device${delN?`, ${delN} deleted`:''}. Export the full database as <code>songs.json</code> and replace the file in your GitHub repo; every phone picks it up next time it is online.</div>
@@ -1156,6 +1490,7 @@ $('setBtn').onclick=async()=>{
    <div class="row"><div class="ctl"><label>Click vol</label><input type="range" id="stClk" min="0" max="1" step="0.05" value="${SET.click}" style="width:90px"></div><div class="ctl"><label>Chord vol</label><input type="range" id="stStr" min="0" max="1" step="0.05" value="${SET.strum}" style="width:90px"></div></div>
   </div>`);
   $('stUrl').onchange=async e=>{SET.dbUrl=e.target.value.trim()||'songs.json';await DB.set('settings',SET)};
+  $('stBackGo').onclick=async()=>{SET.backend=$('stBack').value;SET.supaUrl=$('stSU').value.trim();SET.supaKey=$('stSK').value.trim();await DB.set('settings',SET);closeModal();await initCloud();toast('Accounts server: '+API.name)};
   $('stSync').onclick=()=>{SET.dbUrl=$('stUrl').value.trim()||'songs.json';DB.set('settings',SET);syncOnline(true)};
   $('stExp').onclick=()=>{const b=new Blob([exportJSON()],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='songs.json';document.body.appendChild(a);a.click();a.remove();toast('If nothing downloaded, use Copy JSON')};
   $('stCopy').onclick=async()=>{try{await navigator.clipboard.writeText(exportJSON());toast('Copied – paste into songs.json on GitHub')}catch(e){toast('Copy blocked here')}};
@@ -1163,6 +1498,470 @@ $('setBtn').onclick=async()=>{
   $('stImp').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const j=JSON.parse(await f.text());const list=Array.isArray(j)?j:j.songs||[];let n=0;for(const s of list){if(!s.text)continue;const id=s.id||uid();const loc=SONGS.find(x=>x.id===id);if(loc&&(+s.rev||0)<=loc.rev)continue;const o=loc||{id};o.text=s.text;o.rev=+s.rev||Date.now();o.dirty=true;if(!loc)SONGS.push(o);await DB.put(o);indexSong(o);n++}toast(n+' songs imported');renderList();setChip()}catch(err){toast('Not a valid JSON file')}};
   $('stClk').oninput=e=>{SET.click=+e.target.value;DB.set('settings',SET)};$('stStr').oninput=e=>{SET.strum=+e.target.value;DB.set('settings',SET)};
 };
+
+/* ===== CLOUD: accounts, community, premium, admin =====
+   One API, two back ends:
+   - DemoAPI: a pretend server kept on this device (several test users, switchable) so every flow can be tried now.
+   - SupaAPI: the real thing on Supabase (see schema.sql). Same method names, so the UI does not care which is active. */
+const GOOD=4, SLOT_BASE=3, SLOT_STEP=10, SLOT_MAX=50, BAYES_C=5, BAYES_M=3.5, DAY=864e5;
+const COUNTRIES={SG:'Singapore',MY:'Malaysia',US:'United States',GB:'United Kingdom',AU:'Australia',JP:'Japan',KR:'Korea',AE:'UAE',EU:'Europe',
+  MM:'Myanmar',KH:'Cambodia',TH:'Thailand',IN:'India',NP:'Nepal',BD:'Bangladesh',VN:'Vietnam',OT:'Other country'};
+// Prices are starting points to test (see the plan doc). Lower-price countries: quarterly/yearly by wallet or card; monthly only via Google Play (Android app, later).
+const PRICING={
+  MM:{cur:'MMK',plans:[{p:'quarter',m:3,a:4500},{p:'year',m:12,a:15000}],wallet:true},
+  KH:{cur:'USD',plans:[{p:'quarter',m:3,a:2.49},{p:'year',m:12,a:7.99}]},
+  TH:{cur:'THB',plans:[{p:'quarter',m:3,a:99},{p:'year',m:12,a:349}]},
+  IN:{cur:'INR',plans:[{p:'quarter',m:3,a:129},{p:'year',m:12,a:449}]},
+  NP:{cur:'NPR',plans:[{p:'quarter',m:3,a:249},{p:'year',m:12,a:899}]},
+  BD:{cur:'BDT',plans:[{p:'quarter',m:3,a:199},{p:'year',m:12,a:699}]},
+  VN:{cur:'VND',plans:[{p:'quarter',m:3,a:49000},{p:'year',m:12,a:179000}]},
+  _std:{cur:'USD',plans:[{p:'month',m:1,a:2.99},{p:'year',m:12,a:29.99}]}
+};
+const priceFor=c=>PRICING[c]||PRICING._std;
+const fmtMoney=(a,cur)=>cur==='USD'?'US$'+a.toFixed(2):Number(a).toLocaleString()+' '+cur;
+const songKeyOf=(title,artist)=>normTxt(title).replace(/\s+/g,' ').trim()+'|'+normTxt(artist).replace(/\s+/g,' ').trim();
+const shareCode=()=>Math.random().toString(36).slice(2,8)+Math.random().toString(36).slice(2,6);
+function makePreview(text){ // metadata + the first part only
+  const d=parseSong(text);const first=d.sections.find(s=>s.lines.some(l=>l.text&&l.text.trim()))||d.sections[0];
+  if(!first)return text;return serSong({meta:d.meta,sections:[first],order:[first.name]});
+}
+const bayes=(sum,n)=>(BAYES_C*BAYES_M+sum)/(BAYES_C+n);
+const isPremiumUser=u=>!!(u&&u.plan_until&&u.plan_until>Date.now());
+const slotsFor=u=>isPremiumUser(u)?Infinity:Math.min(SLOT_MAX,SLOT_BASE+Math.floor((u.good||0)/SLOT_STEP));
+
+/* ---------- Demo back end (pretend server on this device) ---------- */
+const DemoAPI={
+  name:'demo',S:null,uid:null,
+  async init(){
+    this.S=await DB.get('demoServer',null);
+    if(!this.S){this.S=this.seed();await this.save()}
+    this.uid=await DB.get('demoUser',null);
+  },
+  async save(){await DB.set('demoServer',this.S)},
+  seed(){
+    const now=Date.now(),S={users:[],songs:[],arrs:[],ratings:[],reports:[],payments:[],config:{kbz:'KBZPay 09-000-000-000 (set in Admin)',wave:'WavePay 09-000-000-000 (set in Admin)'}};
+    S.users.push({id:'u_soe',name:'Soe (admin)',role:'admin',country:'SG',created:now-90*DAY,plan_until:0});
+    S.users.push({id:'u_aung',name:'Aung Aung',role:'user',country:'MM',created:now-60*DAY,plan_until:0});
+    S.users.push({id:'u_mya',name:'Mya Mya',role:'user',country:'MM',created:now-45*DAY,plan_until:0});
+    S.users.push({id:'u_new',name:'Ko Ko (new user)',role:'user',country:'TH',created:now-2*DAY,plan_until:0});
+    const add=(owner,text,vis,status)=>{const d=parseSong(text);const k=songKeyOf(d.meta.title,d.meta.artist);if(!S.songs.find(s=>s.key===k))S.songs.push({key:k,title:d.meta.title,artist:d.meta.artist,premium:false,licensed_by:''});
+      const a={id:'a'+shareCode(),owner,song_key:k,title:d.meta.title,artist:d.meta.artist,key:d.meta.key,visibility:vis,status,share_code:shareCode(),text,created:now-10*DAY,updated:now-10*DAY};S.arrs.push(a);return a};
+    const a1=add('u_aung',SAMPLES[0],'public','live');
+    const a2=add('u_mya',SAMPLES[1],'public','live');
+    const a3=add('u_aung',SAMPLES[1].replace('{key: G}','{key: A}').replace(/\[G\]/g,'[A]').replace(/\[D\]/g,'[E]').replace(/\[Em\]/g,'[F#m]').replace(/\[C\]/g,'[D]').replace(/\[D:6\]/g,'[E:6]').replace(/\[G:6\]/g,'[A:6]'),'public','live');
+    add('u_new',SAMPLES[0].replace('{title: မိုးစက်လေးများ}','{title: မိုးစက်လေးများ}\n{comment: my version}'),'public','review');
+    S.songs.find(s=>s.key===a2.song_key).premium=true;S.songs.find(s=>s.key===a2.song_key).licensed_by='Demo Artist (sample licence)';
+    const rate=(u,a,st)=>S.ratings.push({arr:a.id,user:u,stars:st,created:now-5*DAY});
+    rate('u_mya',a1,5);rate('u_soe',a1,4);rate('u_new',a1,4);rate('u_aung',a2,5);rate('u_soe',a2,5);rate('u_mya',a3,3);
+    return S;
+  },
+  _u(id){return this.S.users.find(u=>u.id===id)},
+  _profile(u){if(!u)return null;const mine=this.S.arrs.filter(a=>a.owner===u.id).map(a=>a.id);const good=this.S.ratings.filter(r=>mine.includes(r.arr)&&r.stars>=GOOD).length;
+    const used=this.S.arrs.filter(a=>a.owner===u.id&&a.visibility!=='private'&&a.status!=='rejected').length;return {...u,good,used}},
+  _stats(a){const rs=this.S.ratings.filter(r=>r.arr===a.id);let sum=0,w=0;for(const r of rs){const u=this._u(r.user);const wt=u&&Date.now()-u.created<30*DAY?0.5:1;sum+=r.stars*wt;w+=wt}
+    return {n:rs.length,avg:rs.length?rs.reduce((x,r)=>x+r.stars,0)/rs.length:0,score:bayes(sum,w)}},
+  _song(k){return this.S.songs.find(s=>s.key===k)||{key:k,premium:false}},
+  _view(a,me){ // what this user may see of an arrangement
+    const song=this._song(a.song_key),own=me&&a.owner===me.id,locked=song.premium&&!own&&!isPremiumUser(me)&&!(me&&me.role==='admin');
+    const o=this._u(a.owner);return {...a,...this._stats(a),owner_name:o?o.name:'?',premium:!!song.premium,licensed_by:song.licensed_by||'',locked,text:locked?makePreview(a.text):a.text};
+  },
+  async me(){return this._profile(this._u(this.uid))},
+  async users(){return this.S.users.map(u=>({id:u.id,name:u.name,role:u.role}))},
+  async signInDemo(id,name){
+    if(!id){id='u'+shareCode();this.S.users.push({id,name:name||'Test user',role:'user',country:'MM',created:Date.now(),plan_until:0});await this.save()}
+    this.uid=id;await DB.set('demoUser',id);return this.me()},
+  async signOut(){this.uid=null;await DB.set('demoUser',null)},
+  async updateProfile(p){const u=this._u(this.uid);if(!u)throw new Error('Sign in first');Object.assign(u,p);await this.save();return this.me()},
+  async community(q){
+    const me=await this.me();const live=this.S.arrs.filter(a=>a.visibility==='public'&&a.status==='live');
+    const groups=new Map();for(const a of live){const v=this._view(a,me);if(!groups.has(a.song_key))groups.set(a.song_key,[]);groups.get(a.song_key).push(v)}
+    let out=[...groups.entries()].map(([k,arr])=>{arr.sort((x,y)=>y.score-x.score);const s=this._song(k);return {key:k,title:arr[0].title,artist:arr[0].artist,premium:!!s.premium,count:arr.length,best:arr[0],text:arr[0].text}});
+    if(q){out=out.filter(g=>normTxt(g.title+' '+g.artist+' '+g.best.text).includes(q))}
+    return out.sort((a,b)=>b.best.score-a.best.score);
+  },
+  async songArrangements(k){const me=await this.me();return this.S.arrs.filter(a=>a.song_key===k&&a.visibility==='public'&&a.status==='live').map(a=>this._view(a,me)).sort((x,y)=>y.score-x.score)},
+  async get(id){const me=await this.me();const a=this.S.arrs.find(x=>x.id===id);if(!a)throw new Error('Not found');
+    if(a.visibility==='private'&&(!me||me.id!==a.owner))throw new Error('This arrangement is private');return this._view(a,me)},
+  async byShare(code){const me=await this.me();const a=this.S.arrs.find(x=>x.share_code===code&&x.visibility!=='private'&&x.status!=='rejected'&&x.status!=='hidden');if(!a)throw new Error('Link not found or removed');return this._view(a,me)},
+  async publish(p){
+    const me=await this.me();if(!me)throw new Error('Sign in first');
+    const d=parseSong(p.text);if(!d.meta.title)throw new Error('Add a title first');
+    const k=songKeyOf(d.meta.title,d.meta.artist);let a=p.id&&this.S.arrs.find(x=>x.id===p.id&&x.owner===me.id);
+    const sharedNow=a?a.visibility!=='private':false;
+    if(p.visibility!=='private'&&!sharedNow&&me.used>=slotsFor(me))throw new Error(`You have used all ${slotsFor(me)} sharing slots. Earn more with good ratings, or keep it private.`);
+    if(!this.S.songs.find(s=>s.key===k))this.S.songs.push({key:k,title:d.meta.title,artist:d.meta.artist,premium:false,licensed_by:''});
+    const status=p.visibility==='public'&&me.good<10&&me.role!=='admin'?'review':'live';
+    if(a){Object.assign(a,{text:p.text,title:d.meta.title,artist:d.meta.artist,key:d.meta.key,song_key:k,visibility:p.visibility,updated:Date.now()});if(a.status==='rejected'||p.visibility==='public'&&a.status!=='live')a.status=status}
+    else{a={id:'a'+shareCode(),owner:me.id,song_key:k,title:d.meta.title,artist:d.meta.artist,key:d.meta.key,visibility:p.visibility,status,share_code:shareCode(),text:p.text,created:Date.now(),updated:Date.now()};this.S.arrs.push(a)}
+    await this.save();return this._view(a,me);
+  },
+  async mine(){const me=await this.me();if(!me)return [];return this.S.arrs.filter(a=>a.owner===me.id).map(a=>this._view(a,me)).sort((x,y)=>y.updated-x.updated)},
+  async unpublish(id){const me=await this.me();this.S.arrs=this.S.arrs.filter(a=>!(a.id===id&&a.owner===me.id));this.S.ratings=this.S.ratings.filter(r=>r.arr!==id);await this.save()},
+  async myRating(id){const r=this.S.ratings.find(r=>r.arr===id&&r.user===this.uid);return r?r.stars:0},
+  async rate(id,stars){
+    const me=await this.me();if(!me)throw new Error('Sign in to rate');const a=this.S.arrs.find(x=>x.id===id);
+    if(a.owner===me.id)throw new Error("You can't rate your own arrangement");
+    // Real server also requires an account at least 7 days old (schema.sql); skipped in demo so new test users can try it.
+    const r=this.S.ratings.find(r=>r.arr===id&&r.user===me.id);if(r)r.stars=stars;else this.S.ratings.push({arr:id,user:me.id,stars,created:Date.now()});await this.save()},
+  async report(id,reason){const me=await this.me();if(!me)throw new Error('Sign in to report');
+    if(this.S.reports.find(r=>r.arr===id&&r.user===me.id&&r.open))return;this.S.reports.push({id:'r'+shareCode(),arr:id,user:me.id,reason,open:true,created:Date.now()});
+    if(this.S.reports.filter(r=>r.arr===id&&r.open).length>=3){const a=this.S.arrs.find(x=>x.id===id);if(a)a.status='hidden'}await this.save()},
+  async config(){return this.S.config},
+  async pay(p){const me=await this.me();if(!me)throw new Error('Sign in first');const x={id:'p'+shareCode(),user:me.id,...p,status:'pending',created:Date.now()};this.S.payments.push(x);await this.save();return x},
+  async myPayments(){return this.S.payments.filter(p=>p.user===this.uid).sort((a,b)=>b.created-a.created)},
+  async simulateCard(plan,country){const me=await this.me();const x=await this.pay({country,period:plan.p,months:plan.m,amount:plan.a,currency:priceFor(country).cur,method:'card (simulated)',txn:'SIM-'+shareCode()});await this._approve(x.id,true,'auto');return this.me()},
+  async _approve(id,ok,by){const x=this.S.payments.find(p=>p.id===id);if(!x||x.status!=='pending')return;x.status=ok?'approved':'rejected';x.decided=Date.now();x.by=by;
+    if(ok){const u=this._u(x.user);const from=Math.max(Date.now(),u.plan_until||0);const d=new Date(from);d.setMonth(d.getMonth()+(x.months||1));u.plan_until=d.getTime()}await this.save()},
+  _admin(){const u=this._u(this.uid);if(!u||u.role!=='admin')throw new Error('Admins only')},
+  async adminData(){this._admin();const S=this.S;const name=id=>(this._u(id)||{}).name||'?';
+    return {payments:S.payments.filter(p=>p.status==='pending').map(p=>({...p,user_name:name(p.user)})),
+      review:S.arrs.filter(a=>a.status==='review').map(a=>({...a,owner_name:name(a.owner)})),
+      reports:S.reports.filter(r=>r.open).map(r=>{const a=S.arrs.find(x=>x.id===r.arr)||{};return {...r,title:a.title,status:a.status,user_name:name(r.user)}}),
+      songs:S.songs.map(s=>({...s,count:S.arrs.filter(a=>a.song_key===s.key).length})),config:S.config}},
+  async decidePayment(id,ok){this._admin();await this._approve(id,ok,this.uid)},
+  async decideReview(id,ok){this._admin();const a=this.S.arrs.find(x=>x.id===id);if(a)a.status=ok?'live':'rejected';await this.save()},
+  async decideReport(id,hide){this._admin();const r=this.S.reports.find(x=>x.id===id);if(!r)return;for(const x of this.S.reports.filter(x=>x.arr===r.arr))x.open=false;const a=this.S.arrs.find(x=>x.id===r.arr);if(a)a.status=hide?'hidden':'live';await this.save()},
+  async setSong(k,premium,licensed_by){this._admin();const s=this.S.songs.find(x=>x.key===k);if(s){s.premium=premium;s.licensed_by=licensed_by}await this.save()},
+  async setConfig(c){this._admin();Object.assign(this.S.config,c);await this.save()},
+  async resetDemo(){this.S=this.seed();await this.save()}
+};
+
+/* ---------- Supabase back end (real server; set up with schema.sql) ---------- */
+const SUPA_JS='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const SupaAPI={
+  name:'supabase',sb:null,user:null,
+  async init(){
+    if(!SET.supaUrl||!SET.supaKey)throw new Error('Supabase URL and anon key not set');
+    const m=await import(SUPA_JS);this.sb=m.createClient(SET.supaUrl,SET.supaKey,{auth:{persistSession:true,detectSessionInUrl:true}});
+    const {data}=await this.sb.auth.getSession();this.user=data.session?data.session.user:null;
+    this.sb.auth.onAuthStateChange((_e,s)=>{this.user=s?s.user:null;refreshAccount()});
+  },
+  ok(r){if(r.error)throw new Error(r.error.message);return r.data},
+  async me(){if(!this.user)return null;const p=this.ok(await this.sb.from('profile_view').select('*').eq('id',this.user.id).maybeSingle());if(!p)return null;
+    return {id:p.id,name:p.display_name,role:p.role,country:p.country,plan_until:p.plan_until?Date.parse(p.plan_until):0,created:Date.parse(p.created_at),good:p.good,used:p.used}},
+  async signInEmail(email){this.ok(await this.sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}}))},
+  async signOut(){await this.sb.auth.signOut();this.user=null},
+  async updateProfile(p){const row={};if(p.name!=null)row.display_name=p.name;if(p.country!=null)row.country=p.country;this.ok(await this.sb.from('profiles').update(row).eq('id',this.user.id));return this.me()},
+  _map(r){const prem=r.premium,locked=!!r.locked;return {id:r.id,owner:r.owner,owner_name:r.owner_name,song_key:r.song_key,title:r.title,artist:r.artist,key:r.music_key,visibility:r.visibility,status:r.status,share_code:r.share_code,
+    text:r.body||r.preview,locked,premium:prem,licensed_by:r.licensed_by||'',n:r.n||0,avg:Number(r.avg)||0,score:Number(r.score)||0,updated:Date.parse(r.updated_at),created:Date.parse(r.created_at)}},
+  async _withBodies(rows){ // bodies come from a table whose row security hides premium texts from non-subscribers
+    if(!rows.length)return [];const ids=rows.map(r=>r.id);const bodies=this.ok(await this.sb.from('arrangement_bodies').select('arrangement_id,body').in('arrangement_id',ids));
+    const bm=new Map(bodies.map(b=>[b.arrangement_id,b.body]));return rows.map(r=>this._map({...r,body:bm.get(r.id)||null,locked:r.premium&&!bm.has(r.id)}))},
+  async community(q){let rq=this.sb.from('arrangement_list').select('*').eq('visibility','public').eq('status','live').order('score',{ascending:false}).limit(300);
+    if(q)rq=rq.or(`search_text.ilike.%${q.replace(/[%,()]/g,' ')}%`);
+    const rows=await this._withBodies(this.ok(await rq));const g=new Map();for(const a of rows){if(!g.has(a.song_key))g.set(a.song_key,[]);g.get(a.song_key).push(a)}
+    return [...g.entries()].map(([k,arr])=>({key:k,title:arr[0].title,artist:arr[0].artist,premium:arr[0].premium,count:arr.length,best:arr[0],text:arr[0].text}))},
+  async songArrangements(k){return this._withBodies(this.ok(await this.sb.from('arrangement_list').select('*').eq('song_key',k).eq('visibility','public').eq('status','live').order('score',{ascending:false})))},
+  async get(id){const r=this.ok(await this.sb.from('arrangement_list').select('*').eq('id',id).maybeSingle());if(!r)throw new Error('Not found or private');return (await this._withBodies([r]))[0]},
+  async byShare(code){const r=this.ok(await this.sb.rpc('arrangement_by_share',{code}));if(!r||!r.length)throw new Error('Link not found or removed');return (await this._withBodies(r))[0]},
+  async publish(p){const d=parseSong(p.text);if(!d.meta.title)throw new Error('Add a title first');
+    const id=this.ok(await this.sb.rpc('publish_arrangement',{p_id:p.id||null,p_title:d.meta.title,p_artist:d.meta.artist||'',p_key:d.meta.key||'',p_visibility:p.visibility,p_body:p.text,p_preview:makePreview(p.text)}));return this.get(id)},
+  async mine(){return this._withBodies(this.ok(await this.sb.from('arrangement_list').select('*').eq('owner',this.user.id).order('updated_at',{ascending:false})))},
+  async unpublish(id){this.ok(await this.sb.from('arrangements').delete().eq('id',id))},
+  async myRating(id){if(!this.user)return 0;const r=this.ok(await this.sb.from('ratings').select('stars').eq('arrangement_id',id).eq('user_id',this.user.id).maybeSingle());return r?r.stars:0},
+  async rate(id,stars){if(!this.user)throw new Error('Sign in to rate');this.ok(await this.sb.from('ratings').upsert({arrangement_id:id,user_id:this.user.id,stars},{onConflict:'arrangement_id,user_id'}))},
+  async report(id,reason){if(!this.user)throw new Error('Sign in to report');this.ok(await this.sb.from('reports').insert({arrangement_id:id,user_id:this.user.id,reason}))},
+  async config(){const r=this.ok(await this.sb.from('app_config').select('value').eq('key','wallets').maybeSingle());return r?r.value:{}},
+  async pay(p){if(!this.user)throw new Error('Sign in first');return this.ok(await this.sb.from('payments').insert({user_id:this.user.id,country:p.country,period:p.period,months:p.months,amount:p.amount,currency:p.currency,method:p.method,txn:p.txn,note:p.note||''}).select().single())},
+  async myPayments(){return this.ok(await this.sb.from('payments').select('*').eq('user_id',this.user.id).order('created_at',{ascending:false})).map(p=>({...p,created:Date.parse(p.created_at)}))},
+  async simulateCard(){throw new Error('Card payments need Stripe to be connected (Phase 3).')},
+  async adminData(){
+    const pay=this.ok(await this.sb.from('payments').select('*, profiles(display_name)').eq('status','pending').order('created_at'));
+    const rev=this.ok(await this.sb.from('arrangement_list').select('*').eq('status','review'));
+    const rep=this.ok(await this.sb.from('reports').select('*, arrangements(title,status), profiles(display_name)').eq('open',true));
+    const songs=this.ok(await this.sb.from('songs').select('*'));
+    return {payments:pay.map(p=>({...p,user_name:p.profiles&&p.profiles.display_name,created:Date.parse(p.created_at)})),review:rev.map(r=>this._map(r)),
+      reports:rep.map(r=>({id:r.id,arr:r.arrangement_id,reason:r.reason,title:r.arrangements&&r.arrangements.title,status:r.arrangements&&r.arrangements.status,user_name:r.profiles&&r.profiles.display_name})),
+      songs:songs.map(s=>({key:s.key,title:s.title,artist:s.artist,premium:s.premium,licensed_by:s.licensed_by})),config:await this.config()}},
+  async decidePayment(id,ok){this.ok(await this.sb.rpc('decide_payment',{p_id:id,p_ok:ok}))},
+  async decideReview(id,ok){this.ok(await this.sb.from('arrangements').update({status:ok?'live':'rejected'}).eq('id',id))},
+  async decideReport(id,hide){this.ok(await this.sb.rpc('decide_report',{p_id:id,p_hide:hide}))},
+  async setSong(k,premium,licensed_by){this.ok(await this.sb.from('songs').update({premium,licensed_by}).eq('key',k))},
+  async setConfig(c){const cur=await this.config();this.ok(await this.sb.from('app_config').upsert({key:'wallets',value:{...cur,...c}}))}
+};
+
+/* ---------- Glue ---------- */
+let API=DemoAPI, ME=null, LIBMODE='phone';
+async function initCloud(){
+  try{if(SET.backend==='supabase'){await SupaAPI.init();API=SupaAPI}else{await DemoAPI.init();API=DemoAPI}}
+  catch(e){toast('Online account: '+e.message+' – using demo mode');await DemoAPI.init();API=DemoAPI}
+  await refreshAccount();
+  openShareFromUrl();
+}
+async function refreshAccount(){
+  try{ME=await API.me()}catch(e){ME=null}
+  const b=$('acctBtn');b.innerHTML=ME?`${esc(ME.name.split(' ')[0])}${isPremiumUser(ME)?' <span style="color:var(--ac)">★</span>':''}`:'Sign in';
+  b.classList.toggle('on',!!ME);
+  await loadFavs();renderList();if(P.song)updFavBtn();
+}
+function openShareFromUrl(){
+  const m=/^#s-([a-z0-9]{6,16})$/i.exec(location.hash)||/[?&]s=([a-z0-9]{6,16})/i.exec(location.search);
+  if(m)API.byShare(m[1]).then(a=>openCloud(a)).catch(e=>toast(e.message));
+}
+window.addEventListener('hashchange',openShareFromUrl);
+const needMe=()=>{if(!ME){accountModal();throw new Error('Sign in first')}return ME};
+
+// open a cloud arrangement in the player
+function cloudSong(a){return {id:'c:'+a.id,rev:a.updated||1,text:a.text,cloud:a}}
+function openCloud(a){openPlayer(cloudSong(a))}
+const starsHtml=(v,cls)=>[1,2,3,4,5].map(i=>`<span class="${cls||''}" data-star="${i}" style="cursor:pointer;color:${i<=Math.round(v)?'var(--ac)':'#5a4e45'}">★</span>`).join('');
+async function renderCloudBar(){
+  const bar=$('pCloud');const s=P.song;
+  if(s&&s.lockedLocal){bar.style.display='';bar.innerHTML='<div class="prem-tag">★ Premium song</div><div class="lockbox"><b>Preview only.</b> Your Premium has ended – renew to play the whole song.<br><button class="pri sm" id="cbGo">See Premium prices</button></div>';$('cbGo').onclick=premiumModal;return}
+  if(!s||!s.cloud){bar.innerHTML='';bar.style.display='none';return}
+  const a=s.cloud;bar.style.display='';
+  let mine=0;try{mine=await API.myRating(a.id)}catch(e){}
+  bar.innerHTML=`${a.premium?`<div class="prem-tag">★ Premium song${a.licensed_by?' · licensed: '+esc(a.licensed_by):''}</div>`:''}
+   ${a.locked?`<div class="lockbox"><b>Preview only.</b> Subscribe to Premium to play the whole song.<br><button class="pri sm" id="cbGo">See Premium prices</button></div>`:''}
+   <div class="row" style="justify-content:space-between;margin-top:6px">
+    <span class="small">by <b>${esc(a.owner_name||'')}</b> · ${a.n?`${a.avg.toFixed(1)} ★ (${a.n})`:'no ratings yet'}</span>
+    <span class="row" style="gap:4px"><span class="small muted">Your rating</span><span id="cbStars" style="font-size:20px">${starsHtml(mine)}</span></span>
+   </div>
+   <div class="row" style="margin-top:6px"><button class="sm" id="cbSave">⬇ Save offline</button><button class="sm" id="cbShare">🔗 Share</button><button class="sm" id="cbAll">Other versions</button><button class="sm danger" id="cbRep">⚑ Report</button></div>`;
+  if($('cbGo'))$('cbGo').onclick=premiumModal;
+  $('cbStars').onclick=async e=>{const st=e.target.closest('[data-star]');if(!st)return;try{needMe();await API.rate(a.id,+st.dataset.star);toast('Thanks for rating');const fresh=await API.get(a.id);P.song.cloud=fresh;renderCloudBar()}catch(err){toast(err.message)}};
+  $('cbSave').onclick=async()=>{
+    if(a.locked){toast('Premium song: subscribe to save it');return}
+    let loc=SONGS.find(x=>x.cloudId===a.id);if(!loc){loc={id:uid(),cloudId:a.id,rev:Date.now(),text:a.text,dirty:false,premium:a.premium};SONGS.push(loc)}else{loc.text=a.text;loc.rev=Date.now();loc.premium=a.premium}
+    await DB.put(loc);indexSong(loc);toast('Saved on this phone');};
+  $('cbShare').onclick=()=>shareModal(a);
+  $('cbAll').onclick=()=>songPage(a.song_key,a.title);
+  $('cbRep').onclick=()=>reportModal(a);
+}
+function shareModal(a){
+  const link=location.origin+location.pathname+'#s-'+a.share_code;
+  openModal(`<div class="row" style="justify-content:space-between"><b>Share “${esc(a.title)}”</b><button onclick="closeModal()">✕</button></div>
+   <div class="hint">${a.visibility==='private'?'This arrangement is private. Change it to Public or Link-only in Studio to share it.':'Anyone with this link can open it in the player'+(a.visibility==='link'?' (it is not listed in Community).':'.')}</div>
+   ${a.visibility==='private'?'':`<input type="text" readonly value="${esc(link)}" style="width:100%;margin:10px 0" onclick="this.select()"><button class="pri" id="shCopy">Copy link</button>`}`);
+  if($('shCopy'))$('shCopy').onclick=async()=>{try{await navigator.clipboard.writeText(link);toast('Link copied')}catch(e){toast('Copy blocked here – select the text and copy')}};
+}
+function reportModal(a){
+  const reasons=['Wrong chords or lyrics','Spam or not a song','Copyright: I own this song','Offensive'];
+  openModal(`<div class="row" style="justify-content:space-between"><b>Report this arrangement</b><button onclick="closeModal()">✕</button></div>
+   <div style="display:grid;gap:6px;margin-top:10px">${reasons.map(r=>`<button data-r="${esc(r)}">${esc(r)}</button>`).join('')}</div>
+   <div class="hint">After 3 reports it is hidden until an admin reviews it.</div>`);
+  $('mbox').onclick=async e=>{const b=e.target.closest('[data-r]');if(!b)return;try{needMe();await API.report(a.id,b.dataset.r);closeModal();toast('Reported – thank you')}catch(err){toast(err.message)}};
+}
+async function songPage(k,title){
+  const list=await API.songArrangements(k);
+  openModal(`<div class="row" style="justify-content:space-between"><b class="my">${esc(title)}</b><button onclick="closeModal()">✕</button></div>
+   <div class="hint">${list.length} arrangement${list.length>1?'s':''}, best rated first.</div>
+   <div style="margin-top:8px">${list.map((a,i)=>`<div class="song" data-a="${a.id}"><div style="flex:1"><div class="t">${i===0?'🏆 ':''}${esc(a.owner_name)}</div><div class="a">Key ${esc(a.key||'?')} · ${a.n?a.avg.toFixed(1)+' ★ ('+a.n+')':'no ratings'}</div></div>${a.locked?'<span class="lock">🔒</span>':''}</div>`).join('')}</div>`);
+  $('mbox').onclick=e=>{const c=e.target.closest('[data-a]');if(!c)return;const a=list.find(x=>x.id===c.dataset.a);closeModal();openCloud(a)};
+}
+
+// Library modes: phone / community / mine
+async function renderCloudList(q){
+  const L=$('list');
+  try{
+    if(LIBMODE==='community'){
+      const g=await API.community(q);$('libCount').textContent=`${g.length} songs in Community`;
+      L.innerHTML=g.length?g.map(x=>`<div class="song" data-k="${esc(x.key)}"><div style="min-width:0;flex:1"><div class="t my">${x.premium?'<span class="prem">★</span> ':''}${esc(x.title)}</div><div class="a my">${esc(x.artist||'')}${statusBadge((t=>{try{return statusOf(parseSong(t||''))}catch(e){return ''}})(x.best.text))}</div><div class="snip">${x.count} version${x.count>1?'s':''} · best by ${esc(x.best.owner_name)} · ${x.best.n?x.best.avg.toFixed(1)+' ★':'new'}</div></div><div class="meta">${x.best.locked?'🔒':''}${esc(x.best.key||'')}</div></div>`).join(''):'<div class="empty">Nothing here yet.</div>';
+      L.onclick=async e=>{const c=e.target.closest('[data-k]');if(!c)return;const x=g.find(y=>y.key===c.dataset.k);if(x.count>1)songPage(x.key,x.title);else openCloud(x.best)};
+    }else{
+      if(!ME){L.innerHTML='<div class="empty">Sign in to see the songs you have shared.<br><br><button class="pri" onclick="accountModal()">Sign in</button></div>';$('libCount').textContent='';return}
+      const m=await API.mine();$('libCount').textContent=`${m.length} published · sharing slots ${ME.used}/${slotsFor(ME)===Infinity?'∞':slotsFor(ME)}`;
+      const st={live:'live',review:'waiting for review',hidden:'hidden (reported)',rejected:'not approved'};
+      L.innerHTML=m.length?m.map(a=>`<div class="song" data-a="${a.id}"><div style="flex:1"><div class="t my">${esc(a.title)}${statusBadge((t=>{try{return statusOf(parseSong(t||''))}catch(e){return ''}})(a.text))}</div><div class="a">${a.visibility==='public'?'🌐 Public':a.visibility==='link'?'🔗 Link only':'🔒 Private'} · ${st[a.status]||a.status} · ${a.n?a.avg.toFixed(1)+' ★ ('+a.n+')':'no ratings'}</div></div></div>`).join(''):'<div class="empty">Nothing published yet. Open a song in Studio and tap ☁ Publish.</div>';
+      L.onclick=e=>{const c=e.target.closest('[data-a]');if(c)openCloud(m.find(a=>a.id===c.dataset.a))};
+    }
+  }catch(e){L.innerHTML=`<div class="empty">Could not load: ${esc(e.message)}</div>`}
+}
+
+// Account
+async function accountModal(){
+  if(!ME){
+    if(API.name==='demo'){
+      const us=await API.users();
+      openModal(`<div class="row" style="justify-content:space-between"><b>Sign in (demo mode)</b><button onclick="closeModal()">✕</button></div>
+       <div class="hint">Demo mode keeps a pretend server on this phone so you can test with several users. Switch to the real server in ⚙ Settings once Supabase is set up.</div>
+       <div style="display:grid;gap:6px;margin-top:10px">${us.map(u=>`<button data-u="${u.id}">${esc(u.name)}${u.role==='admin'?' · admin':''}</button>`).join('')}</div>
+       <div class="row" style="margin-top:10px"><input type="text" id="nuName" placeholder="New test user name" style="flex:1"><button id="nuGo">Create</button></div>`);
+      $('mbox').onclick=async e=>{const b=e.target.closest('[data-u]');if(b){await API.signInDemo(b.dataset.u);closeModal();await refreshAccount();toast('Signed in as '+ME.name)}};
+      $('nuGo').onclick=async()=>{await API.signInDemo(null,$('nuName').value.trim()||'Test user');closeModal();await refreshAccount();toast('Signed in as '+ME.name)};
+    }else{
+      openModal(`<div class="row" style="justify-content:space-between"><b>Sign in</b><button onclick="closeModal()">✕</button></div>
+       <div class="hint">We email you a sign-in link. No password needed.</div>
+       <input type="text" id="siEmail" placeholder="you@example.com" style="width:100%;margin:10px 0"><button class="pri" id="siGo">Email me a link</button>`);
+      $('siGo').onclick=async()=>{try{await API.signInEmail($('siEmail').value.trim());toast('Check your email for the link')}catch(e){toast(e.message)}};
+    }
+    return;
+  }
+  const prem=isPremiumUser(ME),slots=slotsFor(ME);
+  openModal(`<div class="row" style="justify-content:space-between"><b>${esc(ME.name)}</b><button onclick="closeModal()">✕</button></div>
+   <div class="card" style="margin:10px 0 8px">
+    <div>${prem?`<b style="color:var(--ac)">★ Premium</b> until ${new Date(ME.plan_until).toLocaleDateString()}`:'<b>Free plan</b>'}</div>
+    <div class="small muted" style="margin-top:4px">Good ratings received: ${ME.good} · Sharing slots: ${ME.used} used of ${slots===Infinity?'unlimited':slots}${slots!==Infinity?` (next slot at ${(Math.floor(ME.good/SLOT_STEP)+1)*SLOT_STEP} good ratings)`:''}</div>
+   </div>
+   <div class="row"><span class="small muted">Country (sets your price)</span><select id="acCountry">${Object.entries(COUNTRIES).map(([c,n])=>`<option value="${c}"${c===ME.country?' selected':''}>${n}</option>`).join('')}</select></div>
+   <div style="display:grid;gap:8px;margin-top:12px">
+    <button class="pri" id="acPrem">${prem?'Extend Premium':'★ Go Premium'}</button>
+    <button id="acPays">My payments</button>
+    ${ME.role==='admin'?'<button id="acAdmin">🛠 Admin</button>':''}
+    <button id="acOut">${API.name==='demo'?'Switch user / sign out':'Sign out'}</button>
+   </div>`);
+  $('acCountry').onchange=async e=>{ME=await API.updateProfile({country:e.target.value});toast('Country saved')};
+  $('acPrem').onclick=premiumModal;
+  $('acPays').onclick=paymentsModal;
+  if($('acAdmin'))$('acAdmin').onclick=()=>{closeModal();openAdmin()};
+  $('acOut').onclick=async()=>{await API.signOut();ME=null;closeModal();await refreshAccount();if(API.name==='demo')accountModal()};
+}
+async function paymentsModal(){
+  const ps=await API.myPayments();
+  openModal(`<div class="row" style="justify-content:space-between"><b>My payments</b><button onclick="closeModal()">✕</button></div>
+   ${ps.length?ps.map(p=>`<div class="song"><div style="flex:1"><div class="t">${fmtMoney(+p.amount,p.currency)} · ${esc(p.period)}</div><div class="a">${esc(p.method)} · ${esc(p.txn||'')} · ${new Date(p.created).toLocaleDateString()}</div></div><div class="meta">${p.status==='approved'?'<span style="color:var(--ok)">approved</span>':p.status==='rejected'?'<span style="color:#ff9a8a">rejected</span>':'pending'}</div></div>`).join(''):'<div class="empty">No payments yet.</div>'}`);
+}
+async function premiumModal(){
+  try{needMe()}catch(e){return}
+  const c=ME.country||'OT',pr=priceFor(c),cfg=await API.config();let plan=pr.plans[pr.plans.length-1];
+  const draw=()=>{
+    openModal(`<div class="row" style="justify-content:space-between"><b>★ Premium songs</b><button onclick="closeModal()">✕</button></div>
+     <div class="hint">Full access to every premium song (licensed from its artists), saving them offline, unlimited scanning and sharing, no ads. Price for <b>${COUNTRIES[c]||c}</b> – change country in your account.</div>
+     <div style="display:grid;gap:6px;margin:10px 0">${pr.plans.map((p,i)=>`<button data-pl="${i}" class="${p===plan?'on':''}">${fmtMoney(p.a,pr.cur)} / ${p.p}${p.m>1?` <span class="small">(${fmtMoney(p.a/p.m,pr.cur)} a month)</span>`:''}</button>`).join('')}</div>
+     ${PRICING[c]&&c!=='_std'?'<div class="hint">Monthly billing for your country will come through Google Play in the Android app.</div>':''}
+     ${pr.wallet?`<div class="card" style="margin-top:10px"><b>Pay with KBZPay or WavePay</b>
+       <ol class="small" style="padding-left:18px;margin:6px 0"><li>Send <b>${fmtMoney(plan.a,pr.cur)}</b> to:<br>${esc(cfg.kbz||'')}<br>${esc(cfg.wave||'')}</li><li>Write <b>MSB-${esc(ME.id.replace(/[^a-z0-9]/gi,'').slice(-5).toUpperCase())}</b> in the payment note.</li><li>Enter the transaction ID below. Premium starts when we confirm it (usually within a day).</li></ol>
+       <div class="row"><select id="pyM"><option>KBZPay</option><option>WavePay</option></select><input type="text" id="pyTxn" placeholder="Transaction ID" style="flex:1"></div>
+       <button class="pri" id="pyGo" style="margin-top:8px;width:100%">I have paid – submit</button></div>`:''}
+     <div class="card" style="margin-top:10px"><b>Pay by card</b> <span class="small muted">(Stripe – connected in Phase 3)</span>
+       ${API.name==='demo'?'<button id="pyCard" style="width:100%;margin-top:8px">Simulate a successful card payment (demo)</button>':'<div class="hint">Not available yet.</div>'}</div>`);
+    $('mbox').querySelectorAll('[data-pl]').forEach(b=>b.onclick=()=>{plan=pr.plans[+b.dataset.pl];draw()});
+    if($('pyGo'))$('pyGo').onclick=async()=>{const txn=$('pyTxn').value.trim();if(txn.length<4){toast('Enter the transaction ID');return}
+      try{await API.pay({country:c,period:plan.p,months:plan.m,amount:plan.a,currency:pr.cur,method:$('pyM').value,txn,note:'MSB-'+ME.id.replace(/[^a-z0-9]/gi,'').slice(-5).toUpperCase()});closeModal();toast('Submitted – Premium starts once confirmed')}catch(e){toast(e.message)}};
+    if($('pyCard'))$('pyCard').onclick=async()=>{try{await API.simulateCard(plan,c);closeModal();await refreshAccount();toast('Premium active (demo)');if(P.song&&P.song.cloud){const f=await API.get(P.song.cloud.id);openCloud(f)}}catch(e){toast(e.message)}};
+  };
+  draw();
+}
+
+// Publish from Studio
+async function publishModal(){
+  try{needMe()}catch(e){return}
+  if(E.dirty||!E.song){await $('eSave').onclick();if(!E.song)return}
+  const s=E.song,cur=s.cloudId?await API.get(s.cloudId).catch(()=>null):null;
+  const slots=slotsFor(ME),left=slots===Infinity?'unlimited':Math.max(0,slots-ME.used);
+  let vis=cur?cur.visibility:'public';
+  openModal(`<div class="row" style="justify-content:space-between"><b>☁ Publish “${esc(parsed(s).meta.title)}”</b><button onclick="closeModal()">✕</button></div>
+   <div style="display:grid;gap:6px;margin:10px 0">
+    <button data-v="public">🌐 Public – listed in Community, others can rate it</button>
+    <button data-v="link">🔗 Link only – anyone with the link, not listed</button>
+    <button data-v="private">🔒 Private – only you, on all your devices</button></div>
+   <div class="hint">Sharing slots left: <b>${left}</b> (private does not use a slot). ${ME.good<10&&ME.role!=='admin'?'Your first public arrangements are checked by an admin before they appear.':''}</div>
+   ${(st=>st&&st!=='ready'?`<div class="stbar ${STATUS[st].cls}">This song is marked <b>${STATUS[st].long}</b>. Others will see that label until you mark it Ready in Studio.</div>`:'')(statusOf(parsed(s)))}
+   <button class="pri" id="pbGo" style="width:100%;margin-top:10px">${cur?'Update':'Publish'}</button>`);
+  const mark=()=>$('mbox').querySelectorAll('[data-v]').forEach(b=>b.classList.toggle('on',b.dataset.v===vis));mark();
+  $('mbox').querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{vis=b.dataset.v;mark()});
+  $('pbGo').onclick=async()=>{try{const a=await API.publish({id:s.cloudId,text:s.text,visibility:vis});s.cloudId=a.id;await DB.put(s);ME=await API.me();
+    closeModal();toast(a.status==='review'?'Sent for review':'Published');if(vis!=='private')shareModal(a)}catch(e){toast(e.message)}};
+}
+
+// Admin
+async function openAdmin(){showView('admin');await renderAdmin()}
+async function renderAdmin(){
+  const box=$('adminBody');let d;try{d=await API.adminData()}catch(e){box.innerHTML=`<div class="empty">${esc(e.message)}</div>`;return}
+  box.innerHTML=`
+   <div class="card"><b>Payments waiting (${d.payments.length})</b><div class="hint">Match the transaction ID in your KBZPay / WavePay history before approving.</div>
+    ${d.payments.map(p=>`<div class="song"><div style="flex:1"><div class="t">${esc(p.user_name)} · ${fmtMoney(+p.amount,p.currency)} / ${esc(p.period)}</div><div class="a">${esc(p.method)} · txn <b>${esc(p.txn)}</b> · ref ${esc(p.note||'')} · ${new Date(p.created).toLocaleString()}</div></div><button class="sm pri" data-pay="${p.id}" data-ok="1">Approve</button><button class="sm danger" data-pay="${p.id}" data-ok="0">Reject</button></div>`).join('')||'<div class="muted small">None</div>'}</div>
+   <div class="card"><b>Review queue (${d.review.length})</b><div class="hint">First public arrangements from new users.</div>
+    ${d.review.map(a=>`<div class="song"><div style="flex:1"><div class="t my">${esc(a.title)}</div><div class="a">by ${esc(a.owner_name)}</div></div><button class="sm" data-view="${a.id}">View</button><button class="sm pri" data-rev="${a.id}" data-ok="1">Approve</button><button class="sm danger" data-rev="${a.id}" data-ok="0">Reject</button></div>`).join('')||'<div class="muted small">None</div>'}</div>
+   <div class="card"><b>Reports (${d.reports.length})</b>
+    ${d.reports.map(r=>`<div class="song"><div style="flex:1"><div class="t my">${esc(r.title||'?')}</div><div class="a">${esc(r.reason)} · by ${esc(r.user_name)} · now ${esc(r.status||'')}</div></div><button class="sm" data-view="${r.arr}">View</button><button class="sm danger" data-rep="${r.id}" data-hide="1">Hide</button><button class="sm" data-rep="${r.id}" data-hide="0">Keep</button></div>`).join('')||'<div class="muted small">None</div>'}</div>
+   <div class="card"><b>Songs</b><div class="hint">Mark a song Premium only when you hold a licence from its rights holder.</div>
+    ${d.songs.map(s=>`<div class="song"><div style="flex:1;min-width:0"><div class="t my">${s.premium?'<span class="prem">★</span> ':''}${esc(s.title)}</div><div class="a my">${esc(s.artist||'')}${s.premium?' · licence: '+esc(s.licensed_by||'—'):''}</div></div><button class="sm ${s.premium?'on':''}" data-song="${esc(s.key)}">${s.premium?'Premium':'Free'}</button></div>`).join('')}</div>
+   <div class="card"><b>Wallet details shown to payers</b>
+    <input type="text" id="cfKbz" value="${esc(d.config.kbz||'')}" style="width:100%;margin:6px 0"><input type="text" id="cfWave" value="${esc(d.config.wave||'')}" style="width:100%;margin-bottom:6px"><button id="cfSave">Save</button></div>
+   ${API.name==='demo'?'<button class="danger" id="demoReset">Reset demo data</button>':''}`;
+  box.onclick=async e=>{
+    const t=e.target.closest('button');if(!t)return;
+    try{
+      if(t.dataset.pay){await API.decidePayment(t.dataset.pay,t.dataset.ok==='1');toast(t.dataset.ok==='1'?'Approved – Premium on':'Rejected')}
+      else if(t.dataset.rev){await API.decideReview(t.dataset.rev,t.dataset.ok==='1');toast('Done')}
+      else if(t.dataset.rep){await API.decideReport(t.dataset.rep,t.dataset.hide==='1');toast('Done')}
+      else if(t.dataset.view){openCloud(await API.get(t.dataset.view));return}
+      else if(t.dataset.song){const s=d.songs.find(x=>x.key===t.dataset.song);let lic=s.licensed_by;if(!s.premium){lic=await askText('Licensed by (artist / label) – required before charging for this song',lic||'');if(!lic)return}await API.setSong(s.key,!s.premium,lic)}
+      else if(t.id==='cfSave'){await API.setConfig({kbz:$('cfKbz').value,wave:$('cfWave').value});toast('Saved')}
+      else if(t.id==='demoReset'){await API.resetDemo();await API.signInDemo('u_soe');toast('Demo data reset')}
+      else return;
+      await refreshAccount();renderAdmin();
+    }catch(err){toast(err.message)}
+  };
+}
+function askText(label,val){return new Promise(res=>{openModal(`<b>${esc(label)}</b><input type="text" id="atV" value="${esc(val)}" style="width:100%;margin:10px 0"><div class="row"><button class="pri" id="atOk">OK</button><button id="atNo">Cancel</button></div>`);$('atOk').onclick=()=>{const v=$('atV').value.trim();closeModal();res(v)};$('atNo').onclick=()=>{closeModal();res('')}})}
+
+/* ===== FAVORITES (per account) =====
+   Keys: 'c:<arrangement id>' for online songs (kept on the server), 'l:<local id>' for songs only on this phone
+   (kept on this phone, under the signed-in account). */
+let FAV=new Set();
+function favKeyOf(s){if(!s)return null;if(s.lockedLocal&&s.src)s=s.src;if(s.cloud)return 'c:'+s.cloud.id;if(s.cloudId)return 'c:'+s.cloudId;if(s.id==='__preview')return null;return 'l:'+s.id}
+async function loadFavs(){FAV=new Set();if(!ME)return;try{FAV=new Set(await API.favList())}catch(e){}}
+async function toggleFav(key){
+  if(!key)return false;try{needMe()}catch(e){return false}
+  try{const on=await API.favToggle(key);if(on)FAV.add(key);else FAV.delete(key);toast(on?'★ Added to favorites':'Removed from favorites');return on}catch(e){toast(e.message);return false}
+}
+const favBtnHtml=key=>key?`<button class="sm favb${FAV.has(key)?' on':''}" data-fav="${esc(key)}" title="Favorite">${FAV.has(key)?'★':'☆'}</button>`:'';
+// local favorites are stored per account on this phone
+async function localFavs(){return ME?await DB.get('favLocal:'+ME.id,[]):[]}
+async function setLocalFavs(a){if(ME)await DB.set('favLocal:'+ME.id,a)}
+DemoAPI.favList=async function(){const loc=await localFavs();return (this.S.favs||[]).filter(f=>f.user===this.uid).map(f=>f.key).concat(loc)};
+DemoAPI.favToggle=async function(key){
+  if(key.startsWith('l:')){const a=await localFavs();const i=a.indexOf(key);if(i>=0)a.splice(i,1);else a.push(key);await setLocalFavs(a);return i<0}
+  this.S.favs=this.S.favs||[];const i=this.S.favs.findIndex(f=>f.user===this.uid&&f.key===key);
+  if(i>=0)this.S.favs.splice(i,1);else this.S.favs.push({user:this.uid,key,created:Date.now()});await this.save();return i<0};
+DemoAPI.getMany=async function(ids){const me=await this.me();return this.S.arrs.filter(a=>ids.includes(a.id)&&(a.visibility!=='private'||(me&&a.owner===me.id))&&a.status!=='rejected').map(a=>this._view(a,me))};
+SupaAPI.favList=async function(){const rows=this.ok(await this.sb.from('favorites').select('arrangement_id').eq('user_id',this.user.id));return rows.map(r=>'c:'+r.arrangement_id).concat(await localFavs())};
+SupaAPI.favToggle=async function(key){
+  if(key.startsWith('l:'))return DemoAPI.favToggle.call(this,key);
+  const id=key.slice(2);const has=this.ok(await this.sb.from('favorites').select('arrangement_id').eq('user_id',this.user.id).eq('arrangement_id',id));
+  if(has.length){this.ok(await this.sb.from('favorites').delete().eq('user_id',this.user.id).eq('arrangement_id',id));return false}
+  this.ok(await this.sb.from('favorites').insert({user_id:this.user.id,arrangement_id:id}));return true};
+SupaAPI.getMany=async function(ids){if(!ids.length)return [];return this._withBodies(this.ok(await this.sb.from('arrangement_list').select('*').in('id',ids)))};
+
+async function renderFavList(q){
+  const L=$('list');
+  if(!ME){L.innerHTML='<div class="empty">Sign in to keep favorite songs with your account.<br><br><button class="pri" onclick="accountModal()">Sign in</button></div>';$('libCount').textContent='';return}
+  const keys=[...FAV];const localIds=keys.filter(k=>k.startsWith('l:')).map(k=>k.slice(2)),cloudIds=keys.filter(k=>k.startsWith('c:')).map(k=>k.slice(2));
+  let cloud=[];try{cloud=await API.getMany(cloudIds)}catch(e){}
+  const items=[];
+  for(const id of localIds){const s=SONGS.find(x=>x.id===id);if(s){const d=parsed(s);items.push({key:'l:'+id,title:d.meta.title,artist:d.meta.artist,text:s.text,open:()=>openPlayer(s),premium:s.premium,where:'📱'})}}
+  for(const a of cloud){const loc=SONGS.find(x=>x.cloudId===a.id);items.push({key:'c:'+a.id,title:a.title,artist:a.artist,text:a.text,open:()=>loc&&!a.locked?openPlayer(loc):openCloud(a),premium:a.premium,locked:a.locked,where:loc?'📱☁':'☁',by:a.owner_name})}
+  items.forEach(x=>x.st=(t=>{try{return statusOf(parseSong(t||''))}catch(e){return ''}})(x.text));
+  let list=items;if(STFILTER)list=list.filter(x=>STFILTER==='none'?!x.st:x.st===STFILTER);if(q)list=items.filter(x=>normTxt(x.title+' '+x.artist+' '+(x.text||'').replace(/\[[^\]]*\]|\{[^}]*\}/g,'')).includes(q));
+  list.sort((a,b)=>(a.title||'').localeCompare(b.title||''));
+  $('libCount').textContent=q?`${list.length} of ${items.length} favorites`:`${items.length} favorite songs`;
+  L.innerHTML=list.length?list.map((x,i)=>`<div class="song" data-i="${i}"><div style="min-width:0;flex:1"><div class="t my">${x.premium?'<span class="prem">★</span> ':''}${esc(x.title||'Untitled')}</div><div class="a my">${esc(x.artist||'')}${x.by?' · arranged by '+esc(x.by):''}${statusBadge(x.st)}</div></div><div class="meta">${x.locked?'🔒 ':''}${x.where}<br>${favBtnHtml(x.key)}</div></div>`).join('')
+    :`<div class="empty">${items.length?'No favorite matches. Switch to another tab to search all songs.':'No favorites yet. Tap ☆ on any song to add it.'}</div>`;
+  L.onclick=async e=>{const f=e.target.closest('[data-fav]');if(f){await toggleFav(f.dataset.fav);renderList();return}const c=e.target.closest('[data-i]');if(c)list[+c.dataset.i].open()};
+}
+
+/* ===== PRINT =====
+   Builds a clean black-on-white chord sheet of the song as shown in the player (with Key / Capo applied) and opens the print dialog. */
+function printSong(){
+  if(!P.song||!P.doc){toast('Open a song first');return}
+  const d=P.doc,ts=d.meta.ts||4,used=[];
+  const dc=c=>{const x=dispC(c,0);if(parseChord(x)&&!used.includes(x))used.push(x);return x};
+  const key=d.meta.key?transposeStr(d.meta.key,P.t,'auto'):'';
+  const pat=findPattern(d.meta.strum)||null;
+  let h=`<h1 class="my">${esc(d.meta.title||'Untitled')}</h1><div class="pmeta my">${[d.meta.artist,d.meta.composer&&('Composer: '+d.meta.composer)].filter(Boolean).map(esc).join(' · ')}</div>
+   <div class="pmeta">${[key&&'Key '+key,P.capo&&`Capo ${P.capo} (shapes in ${transposeStr(d.meta.key||'C',P.t-P.capo,'auto')})`,(P.bpm||d.meta.bpm)&&(P.bpm||d.meta.bpm)+' BPM',ts===6?'6/8':ts+'/4',pat&&'Strum: '+pat.name+' '+[...pat.steps].map(c=>SYM[c]||c).join(' ')].filter(Boolean).map(esc).join(' · ')}</div>`;
+  if(d.order.join('|')!==d.sections.map(s=>s.name).join('|'))h+=`<div class="pmeta">Order: ${esc(d.order.join(' → '))}</div>`;
+  for(const s of d.sections){
+    h+=`<div class="psec"><div class="pname">${esc(s.name)}${s.strum?` <span class="pmeta">(${esc(s.strum)})</span>`:''}</div>`;
+    for(const l of s.lines){
+      if(l.comment!=null){h+=`<div class="pcom">${esc(l.comment)}</div>`;continue}
+      if(!l.chords.length){h+=`<div class="pl my">${esc(l.text)}</div>`;continue}
+      if(!l.text.trim()){h+=`<div class="pl pchords">${l.chords.map(c=>`<b>${esc(dc(c.c))}</b>${c.b&&c.b!==ts?`<sup>${c.b}</sup>`:''}`).join('&nbsp;&nbsp; ')}</div>`;continue}
+      h+='<div class="pl my">';
+      for(const g of lineGroups(l))syllables(g.text).forEach((y,k)=>{h+=`<span class="psg"><b>${k===0&&g.chords.length?g.chords.map(c=>esc(dc(c.c))+(c.b&&c.b!==ts?`<sup>${c.b}</sup>`:'')).join(' '):'&nbsp;'}</b><span>${esc(y.t)||'&nbsp;'}</span></span>`});
+      h+='</div>';
+    }
+    h+='</div>';
+  }
+  if(used.length)h+=`<div class="pdiag">${used.map(n=>{const ci=chordInfo(n);const v=ci&&voicings(ci.root,ci.type,ci.bass)[0];return v?`<div><b>${esc(n)}</b>${diagramSVG(v,ci.root,true)}</div>`:''}).join('')}</div>`;
+  h+=`<div class="pfoot">Moe's Songbook${P.song.cloud?' · arranged by '+esc(P.song.cloud.owner_name||''):''} · printed ${new Date().toLocaleDateString()}</div>`;
+  let el=$('printArea');if(!el){el=document.createElement('div');el.id='printArea';document.body.appendChild(el)}
+  el.innerHTML=h;el.style.fontSize=(SET.printSize||14)+'px';
+  try{window.print()}catch(e){}
+  setTimeout(()=>toast('If no print window opened, use the hosted app (printing is blocked inside Claude).'),600);
+}
 
 /* ===== INIT ===== */
 (async function init(){
@@ -1175,6 +1974,7 @@ $('setBtn').onclick=async()=>{
     await DB.set('seeded',true);
   }
   SONGS.forEach(indexSong);setChip();renderList();applyPlayerPrefs();
+  initCloud();
   if(navigator.onLine&&Date.now()-(SET.lastSync||0)>60000)syncOnline(false);
   if('serviceWorker' in navigator&&location.protocol==='https:'&&!/claude/.test(location.host)){try{navigator.serviceWorker.register('sw.js').catch(()=>{})}catch(e){}}
 })();
