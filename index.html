@@ -78,6 +78,33 @@ nav.tabs button span{font-size:19px;line-height:1}nav.tabs button.on{color:var(-
 .ochips button.cur{border-color:var(--ac);color:var(--ac)}
 .ptitle{font-size:22px;font-weight:700;margin:6px 0 0}
 .playbtn{font-size:18px;min-width:64px}
+/* floating controls */
+.pfab{position:fixed;right:16px;bottom:calc(74px + env(safe-area-inset-bottom));z-index:45;width:58px;height:58px;border-radius:50%;border:0;background:var(--ac);box-shadow:0 6px 18px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:0;transition:opacity .2s,transform .2s}
+.pfab .fi-x{display:none}.pfab.open .fi-x{display:inline}.pfab.open .fi-s{display:none}
+body.isplay .pfab:not(.open){opacity:.5}
+.pback{position:fixed;inset:0;z-index:38;background:rgba(10,8,6,.6);opacity:0;pointer-events:none;transition:opacity .2s}
+.pback.on{opacity:1;pointer-events:auto}
+.psheet{position:fixed;left:0;right:0;bottom:0;z-index:40;max-width:720px;margin:0 auto;max-height:82vh;overflow-y:auto;background:#1d1814;border-top:1px solid var(--line);border-radius:20px 20px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,.5);padding:6px 14px calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;transform:translateY(105%);transition:transform .25s ease;visibility:hidden}
+.psheet.on{transform:none;visibility:visible}
+.phandle{display:flex;justify-content:center;padding:6px 0 2px;cursor:grab}.phandle i{width:40px;height:5px;border-radius:3px;background:var(--line)}
+.phead{display:flex;justify-content:space-between;align-items:center}.pclose{width:40px;height:40px;border-radius:50%;padding:0;font-size:16px}
+.pfab.open{opacity:0;pointer-events:none;transform:scale(.6)}
+.pstep{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px 8px}
+.pstep label{width:52px;font-size:12px;color:var(--mu)}
+.pstep b{flex:1;text-align:center;font-size:19px;font-weight:800}
+.pstep button{width:44px;height:44px;border-radius:12px;font-size:20px;font-weight:700;padding:0;background:var(--panel2)}
+.pstep .ptap{width:auto;padding:0 12px;font-size:13px}
+.prow{display:flex;gap:8px}
+.ptog button{flex:1;height:44px;border-radius:22px;font-size:13px;padding:0 6px}
+.psel{flex:1;display:flex;flex-direction:column;gap:3px;min-width:0}.psel span{font-size:11px;color:var(--mu)}.psel select{width:100%}
+.ptools button{flex:1;height:60px;border-radius:14px;border:0;background:var(--panel2);font-size:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0}
+.ptools button span{font-size:18px;line-height:1}
+.pmini{position:fixed;left:12px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:44;display:none;align-items:center;gap:6px;background:rgba(33,27,23,.94);border:1px solid var(--line);border-radius:28px;padding:5px 10px 5px 5px}
+.pmini button{width:40px;height:40px;border-radius:50%;padding:0;font-size:18px;font-weight:700}
+.pmini b{font-size:15px;min-width:26px;text-align:center}
+body.isplay .pmini{display:flex}
+body.isplay #pStatus,body.isplay #pCloud{display:none!important}
+#v-play{padding-bottom:90px}
 /* studio */
 .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .meta-grid label{font-size:11px;color:var(--mu);display:block;margin-bottom:2px}
@@ -187,39 +214,35 @@ code{background:var(--panel2);padding:0 4px;border-radius:4px;font-size:.92em}
 <section class="view" id="v-play">
   <div id="pEmpty" class="empty">Choose a song in the Library.</div>
   <div id="pWrap" style="display:none">
-    <div>
-      <div class="row">
-        <button class="pri playbtn" id="pPlay">▶</button>
-        <div class="ctl"><label>BPM</label><button id="bDn">−</button><b id="bVal">80</b><button id="bUp">+</button><button id="tapT" style="font-size:12px">tap</button></div>
-        <div class="ctl"><label>Key</label><button id="kDn">−</button><b id="kVal">0</b><button id="kUp">+</button></div>
-        <div class="ctl"><label>Capo</label><button id="cDn">−</button><b id="cVal">0</b><button id="cUp">+</button></div>
-      </div>
-      <div class="row" style="margin-top:6px">
-        <select id="loopSel" style="flex:1;min-width:150px"></select>
-        <select id="patSel" style="flex:1;min-width:150px"></select>
-        <button class="sm" id="clkBtn" title="Metronome click">♩ Click</button>
-        <button class="sm" id="strBtn" title="Strum guitar on each chord">🎸 Strum</button>
-        <button class="sm" id="cntBtn" title="Count-in bar">1234</button>
-        <div class="ctl"><button id="fDn">A−</button><b id="fVal" style="font-size:12px">16</b><button id="fUp">A+</button></div>
-        <button class="sm" id="pFav" title="Favorite">☆</button>
-        <button class="sm" id="pShapes" title="Chord shapes, easier keys">🎸 Shapes</button>
-        <button class="sm" id="pPrint" title="Print chord sheet">🖨</button>
-        <button class="sm" id="pEdit">✎</button>
-      </div>
-    </div>
+    <div class="ptitle my" id="pTitle"></div>
+    <div class="muted small my" id="pSub"></div>
     <div class="ptop">
       <div class="pnow">
-        <button class="pri" id="pPlay2" style="font-size:20px;width:52px;height:52px;border-radius:50%;padding:0">▶</button>
+        <button class="pri" id="pPlay2" aria-label="Play or stop" style="font-size:20px;width:52px;height:52px;border-radius:50%;padding:0">▶</button>
         <div><div class="big" id="nowC">–</div><div class="beats" id="beats"></div><div class="pstrip" id="patStrip"></div></div>
         <div class="nxt" id="nxtC"></div>
         <div class="dg" id="nowDg"></div>
       </div>
       <div class="ochips" id="ochips"></div>
     </div>
-    <div class="ptitle my" id="pTitle"></div>
-    <div class="muted small my" id="pSub"></div>
     <div id="pStatus"></div>
     <div id="pCloud" class="card" style="display:none;margin:8px 0;padding:10px"></div>
+    <!-- floating controls -->
+    <div id="pBack" class="pback"></div>
+    <div id="pCtl" class="psheet" role="dialog" aria-label="Player controls" aria-hidden="true">
+      <div class="phandle" id="pHandle"><i></i></div>
+      <div class="phead"><b>Controls</b><button id="pClose" class="pclose" aria-label="Close controls">✕</button></div>
+      <button class="pri playbtn" id="pPlay" style="display:none">▶</button>
+      <div class="pstep"><label>Key</label><button id="kDn" aria-label="Key down">−</button><b id="kVal">0</b><button id="kUp" aria-label="Key up">+</button></div>
+      <div class="pstep"><label>Capo</label><button id="cDn" aria-label="Capo down">−</button><b id="cVal">0</b><button id="cUp" aria-label="Capo up">+</button></div>
+      <div class="pstep"><label>Tempo</label><button id="bDn" aria-label="Tempo down">−</button><b id="bVal">80</b><button id="bUp" aria-label="Tempo up">+</button><button id="tapT" class="ptap">Tap</button></div>
+      <div class="pstep"><label>Text</label><button id="fDn" aria-label="Smaller text">A−</button><b id="fVal">16</b><button id="fUp" aria-label="Bigger text">A+</button></div>
+      <div class="prow ptog"><button id="clkBtn" title="Metronome click">♩ Click</button><button id="strBtn" title="Strum guitar on each chord">🎸 Strum</button><button id="cntBtn" title="Count-in bar">1234 Count-in</button></div>
+      <div class="prow"><label class="psel"><span>Strum pattern</span><select id="patSel"></select></label><label class="psel"><span>Loop</span><select id="loopSel"></select></label></div>
+      <div class="prow ptools"><button id="pShapes"><span>🎸</span>Shapes</button><button id="pFav"><span>☆</span>Favorite</button><button id="pPrint"><span>🖨</span>Print</button><button id="pEdit"><span>✎</span>Edit</button></div>
+    </div>
+    <div id="pMini" class="pmini"><button class="pri" id="pMiniStop" aria-label="Stop">■</button><button id="pMiniDn" aria-label="Tempo down">−</button><b id="pMiniB">80</b><span class="muted small">BPM</span><button id="pMiniUp" aria-label="Tempo up">+</button></div>
+    <button id="pFab" class="pfab" aria-label="Open controls" aria-expanded="false"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1d1408" stroke-width="2.2" stroke-linecap="round"><g class="fi-s"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="2.2" fill="#1d1408"/><circle cx="15" cy="12" r="2.2" fill="#1d1408"/><circle cx="7" cy="18" r="2.2" fill="#1d1408"/></g><g class="fi-x"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></g></svg></button>
     <div class="sheet lyr" id="pSheet"></div>
   </div>
 </section>
@@ -660,7 +683,7 @@ const SAMPLES=[
 /* ===== views ===== */
 let VIEW='lib';
 document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>showView(b.dataset.v));
-function showView(v){VIEW=v;document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));if(v!=='play'&&P.playing)stopPlay();window.scrollTo(0,0)}
+function showView(v){VIEW=v;document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));if(v!=='play'&&P.playing)stopPlay();if(v!=='play'&&window.closeCtl)closeCtl();window.scrollTo(0,0)}
 
 /* ===== LIBRARY + SEARCH ===== */
 const IDX=new Map();
@@ -914,7 +937,7 @@ function renderPlayer(){
   const key=d.meta.key?transposeStr(d.meta.key,P.t,'auto'):'';
   {const st=statusOf(d);$('pStatus').innerHTML=st&&st!=='ready'?`<div class="stbar ${STATUS[st].cls}">${STATUS[st].long}${st==='imported'?'. Chords in the lyrics play one bar each until you set their beats in Studio; intro and interlude bars already have the right beats.':st==='scanned'?'. Every chord plays one bar until you set the beats in Studio.':'.'} <button class="sm" onclick="$('pEdit').click()">✎ Fix in Studio</button></div>`:''}
   $('pSub').textContent=[d.meta.artist,key?'Key '+key+(P.capo?` (capo ${P.capo}: play ${transposeStr(d.meta.key,P.t-P.capo,'auto')} shapes)`:''):'',P.ts+'/4'].filter(Boolean).join(' · ');
-  $('bVal').textContent=P.bpm;$('kVal').textContent=(P.t>0?'+':'')+P.t;$('cVal').textContent=P.capo;
+  $('bVal').textContent=P.bpm;$('kVal').textContent=key?key+(P.t?' ('+(P.t>0?'+':'')+P.t+')':''):(P.t>0?'+':'')+P.t;$('cVal').textContent=P.capo;
   $('beats').innerHTML=Array.from({length:P.ts},(_,i)=>`<i data-b="${i}"></i>`).join('');
   // events lookup
   const evIdx=new Map();P.tl.events.forEach((e,i)=>evIdx.set(e.oi+'.'+e.li+'.'+e.ci,i));
@@ -972,11 +995,11 @@ function startPlay(from){
   const c=ac();P.playing=true;P.queue=[];
   P.ev=from!=null?from:(P.loop&&!P.loop.all?P.loop.a:(P.cur>=0&&P.cur<P.tl.events.length-1?P.cur:0));
   P.beatIn=0;P.countLeft=P.countIn?P.ts:0;P.nextTime=c.currentTime+0.12;
-  $('pPlay').textContent=$('pPlay2').textContent='■';$('pSheet').classList.add('playing');P.timer=setInterval(sched,25);sched();
+  $('pPlay').textContent=$('pPlay2').textContent='■';$('pSheet').classList.add('playing');document.body.classList.add('isplay');closeCtl();P.timer=setInterval(sched,25);sched();
   cancelAnimationFrame(P.raf);P.raf=requestAnimationFrame(tick);
   try{navigator.wakeLock&&navigator.wakeLock.request('screen').then(w=>P.wake=w).catch(()=>{})}catch(e){}
 }
-function stopPlay(){P.playing=false;clearInterval(P.timer);cancelAnimationFrame(P.raf);P.queue=[];$('pPlay').textContent=$('pPlay2').textContent='▶';$('pSheet').classList.remove('playing');document.querySelectorAll('#beats i').forEach(b=>b.className='');if(P.wake){try{P.wake.release()}catch(e){}P.wake=null}}
+function stopPlay(){P.playing=false;clearInterval(P.timer);cancelAnimationFrame(P.raf);P.queue=[];$('pPlay').textContent=$('pPlay2').textContent='▶';$('pSheet').classList.remove('playing');document.body.classList.remove('isplay');document.querySelectorAll('#beats i').forEach(b=>b.className='');if(P.wake){try{P.wake.release()}catch(e){}P.wake=null}}
 function sched(){const c=ac();let n=0;while(P.playing&&P.nextTime<c.currentTime+0.15){schedBeat(P.nextTime);P.nextTime+=60/P.bpm;n++}if(n)P.queue.sort((a,b)=>a.t-b.t)}
 function schedBeat(t){
   const ts=P.ts;
@@ -1016,7 +1039,21 @@ $('strBtn').onclick=e=>{P.strum=!P.strum;SET.pStrum=P.strum;DB.set('settings',SE
 $('cntBtn').onclick=e=>{P.countIn=!P.countIn;SET.pCount=P.countIn;DB.set('settings',SET);e.currentTarget.classList.toggle('on',P.countIn)};
 const setFont=d=>{SET.font=Math.max(11,Math.min(30,(SET.font||16)+d));DB.set('settings',SET);applyPlayerPrefs();if(P.playing&&P.cur>=0)showNow(P.cur,true)};
 $('fUp').onclick=()=>setFont(1);$('fDn').onclick=()=>setFont(-1);
-function updFavBtn(){const k=favKeyOf(P.song),b=$('pFav');b.style.display=k?'':'none';b.textContent=FAV.has(k)?'★':'☆';b.classList.toggle('on',FAV.has(k))}
+
+/* ---- floating controls ---- */
+function openCtl(){$('pCtl').classList.add('on');$('pBack').classList.add('on');$('pFab').classList.add('open');$('pFab').setAttribute('aria-expanded','true');$('pFab').setAttribute('aria-label','Close controls');$('pCtl').setAttribute('aria-hidden','false')}
+function closeCtl(){$('pCtl').classList.remove('on');$('pBack').classList.remove('on');$('pFab').classList.remove('open');$('pFab').setAttribute('aria-expanded','false');$('pFab').setAttribute('aria-label','Open controls');$('pCtl').setAttribute('aria-hidden','true')}
+$('pFab').onclick=()=>$('pCtl').classList.contains('on')?closeCtl():openCtl();
+$('pBack').onclick=closeCtl;$('pClose').onclick=closeCtl;
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('pCtl').classList.contains('on'))closeCtl()});
+{let y0=null;const el=$('pCtl');
+ el.addEventListener('touchstart',e=>{y0=(el.scrollTop<=0)?e.touches[0].clientY:null},{passive:true});
+ el.addEventListener('touchend',e=>{if(y0!=null&&e.changedTouches[0].clientY-y0>70)closeCtl();y0=null},{passive:true});}
+['pShapes','pPrint','pEdit'].forEach(id=>$(id).addEventListener('click',closeCtl));
+$('pMiniStop').onclick=()=>stopPlay();
+$('pMiniUp').onclick=()=>$('bUp').click();$('pMiniDn').onclick=()=>$('bDn').click();
+new MutationObserver(()=>{$('pMiniB').textContent=$('bVal').textContent}).observe($('bVal'),{childList:true,characterData:true,subtree:true});
+function updFavBtn(){const k=favKeyOf(P.song),b=$('pFav');b.style.display=k?'':'none';b.innerHTML='<span>'+(FAV.has(k)?'★':'☆')+'</span>'+(FAV.has(k)?'Favorited':'Favorite');b.classList.toggle('on',FAV.has(k))}
 $('pFav').onclick=async()=>{await toggleFav(favKeyOf(P.song));updFavBtn()};
 $('pPrint').onclick=()=>printSong();
 $('pShapes').onclick=()=>shapesModal('keys');
