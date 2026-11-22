@@ -87,7 +87,7 @@ body.isplay .pfab:not(.open){opacity:.5}
 .psheet{position:fixed;left:0;right:0;bottom:0;z-index:40;max-width:720px;margin:0 auto;max-height:82vh;overflow-y:auto;background:#1d1814;border-top:1px solid var(--line);border-radius:20px 20px 0 0;box-shadow:0 -10px 30px rgba(0,0,0,.5);padding:6px 14px calc(16px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px;transform:translateY(105%);transition:transform .25s ease;visibility:hidden}
 .psheet.on{transform:none;visibility:visible}
 .phandle{display:flex;justify-content:center;padding:6px 0 2px;cursor:grab}.phandle i{width:40px;height:5px;border-radius:3px;background:var(--line)}
-.phead{display:flex;justify-content:space-between;align-items:center}.pclose{width:40px;height:40px;border-radius:50%;padding:0;font-size:16px}
+.phead{display:flex;justify-content:space-between;align-items:center}.pclose{height:40px;padding:0 14px 0 10px;border-radius:20px;border:1px solid var(--ac);background:rgba(240,166,64,.15);color:var(--ac);font-size:14px;font-weight:700;display:inline-flex;align-items:center;gap:6px}
 .pfab.open{opacity:0;pointer-events:none;transform:scale(.6)}
 .pstep{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:6px 8px}
 .pstep label{width:52px;font-size:12px;color:var(--mu)}
@@ -184,6 +184,13 @@ svg.dg{width:100%;height:auto;display:block}
 .mshape b{display:block;color:var(--ac);font-size:12.5px}
 .mshape.big{flex:0 0 118px;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:4px;cursor:pointer}
 .mshape.big.cur{border-color:var(--ac)}
+.shseg{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.shseg button{flex:1;min-width:130px;height:42px;border-radius:21px;border:1px solid var(--line);background:var(--panel);color:var(--mu);font-weight:600}
+.shseg button.on{border-color:var(--ac);background:rgba(240,166,64,.18);color:var(--ac)}
+.shseg button.pulse{animation:shpulse .5s ease-out 2}@keyframes shpulse{0%{transform:scale(1)}40%{transform:scale(1.07);box-shadow:0 0 0 4px rgba(240,166,64,.35)}100%{transform:scale(1)}}
+.shcus{font-size:12px;color:var(--mu);width:100%}
+.mshape.big.flash{animation:shflash 1.6s ease-out 2;border-color:var(--ok)}
+@keyframes shflash{0%{box-shadow:0 0 0 3px var(--ok);background:rgba(127,197,139,.25)}100%{box-shadow:0 0 0 0 transparent}}
 .mshape .fs{font:11px ui-monospace,monospace;color:var(--mu)}
 #nowDg{cursor:pointer}
 .prem{color:var(--ac)}.prem-tag{color:var(--ac);font-size:12.5px;font-weight:600}
@@ -231,7 +238,7 @@ code{background:var(--panel2);padding:0 4px;border-radius:4px;font-size:.92em}
     <div id="pBack" class="pback"></div>
     <div id="pCtl" class="psheet" role="dialog" aria-label="Player controls" aria-hidden="true">
       <div class="phandle" id="pHandle"><i></i></div>
-      <div class="phead"><b>Controls</b><button id="pClose" class="pclose" aria-label="Close controls">✕</button></div>
+      <div class="phead"><b>Controls</b><button id="pClose" class="pclose" aria-label="Close controls"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg><span>Close</span></button></div>
       <button class="pri playbtn" id="pPlay" style="display:none">▶</button>
       <div class="pstep"><label>Key</label><button id="kDn" aria-label="Key down">−</button><b id="kVal">0</b><button id="kUp" aria-label="Key up">+</button></div>
       <div class="pstep"><label>Capo</label><button id="cDn" aria-label="Capo down">−</button><b id="cVal">0</b><button id="cUp" aria-label="Capo up">+</button></div>
@@ -895,14 +902,24 @@ function shapesModal(tab){
   const off=P.t-P.capo,seq=shapeSeq(off),names=[...new Set(seq)];
   const curPick={};names.forEach(n=>{const v=chosenVoicing(n);if(v)curPick[n]=fretStr(v.frets)});
   const cur=planShapes(seq,curPick),best=planShapes(seq);
+  const bestPick={};best.names.forEach(n=>{if(best.pick[n])bestPick[n]=fretStr(best.pick[n].frets)});
+  const easyPick={};names.forEach(n=>{const o=shapeOpts(n)[0];if(o)easyPick[n]=fretStr(o.frets)});
+  const same=p=>names.every(n=>!p[n]||curPick[n]===p[n]);
+  const isBest=same(bestPick),isEasy=same(easyPick),mode=isBest||isEasy?'set':'custom',both=names.every(n=>bestPick[n]===easyPick[n]||!bestPick[n]);
+  const flash=P._flash||new Set();P._flash=null;
   body=`<div class="hint">Shapes in ${esc(transposeStr(orig,off,'auto'))}${P.capo?` (capo ${P.capo})`:''}. Tap a chord to see every way to play it. Hand movement now: <b>${moveWord(cur.perChange)[0]}</b> (${cur.perChange.toFixed(1)} per change)${best.score<cur.score-0.01?`; least-movement set: <b>${best.perChange.toFixed(1)}</b>`:' – already the best set'}.</div>
-   <div class="row" style="margin:8px 0"><button class="pri" id="shBest">✨ Least movement</button><button id="shEasy">Easiest each</button></div>
-   <div class="mrow wrap">${names.map(n=>{const v=chosenVoicing(n),ci=chordInfo(n);return `<div class="mshape big" data-ch="${esc(n)}"><b>${esc(n)}</b>${v?diagramSVG(v,ci.root,false):''}<div class="fs">${v?v.frets.map(f=>f<0?'x':f).join(' '):''}</div></div>`}).join('')}</div>`;
+   <div class="shseg" role="group" aria-label="Shape set"><button id="shBest" class="${isBest?'on':''}" aria-pressed="${isBest}">${isBest?'✓ ':''}Least movement</button><button id="shEasy" class="${isEasy?'on':''}" aria-pressed="${isEasy}">${isEasy?'✓ ':''}Easiest each</button>${mode==='custom'?'<span class="shcus">✓ Your own picks</span>':''}${both?'<span class="shcus">For this song the easiest shapes are also the least-movement shapes, so both are the same set.</span>':''}</div>
+   <div class="mrow wrap">${names.map(n=>{const v=chosenVoicing(n),ci=chordInfo(n);return `<div class="mshape big${flash.has(n)?' flash':''}" data-ch="${esc(n)}"><b>${esc(n)}</b>${v?diagramSVG(v,ci.root,false):''}<div class="fs">${v?v.frets.map(f=>f<0?'x':f).join(' '):''}</div></div>`}).join('')}</div>`;
   openModal(head+body);
   $('mbox').onclick=e=>{
     const tb=e.target.closest('[data-tab]');if(tb){shapesModal(tb.dataset.tab);return}
-    if(e.target.id==='shBest'){best.names.forEach(n=>{if(best.pick[n])P.shapeMap[n]=fretStr(best.pick[n].frets)});saveShapeMap();renderPlayer();shapesModal('this');toast('Least-movement shapes chosen');return}
-    if(e.target.id==='shEasy'){names.forEach(n=>delete P.shapeMap[n]);saveShapeMap();renderPlayer();shapesModal('this');return}
+    const sb=e.target.closest('#shBest,#shEasy');
+    if(sb){const target=sb.id==='shBest'?bestPick:easyPick;const ch=new Set(names.filter(n=>target[n]&&curPick[n]!==target[n]));
+      if(sb.id==='shBest')names.forEach(n=>{if(bestPick[n])P.shapeMap[n]=bestPick[n]});else names.forEach(n=>delete P.shapeMap[n]);
+      saveShapeMap();renderPlayer();P._flash=ch;shapesModal('this');
+      const w=sb.id==='shBest'?'least-movement':'easiest';
+      if(!ch.size){const nb=$(sb.id);if(nb){nb.classList.add('pulse');}}
+      toast(ch.size?`${ch.size} shape${ch.size>1?'s':''} changed to the ${w} set (highlighted)`:(both?'Already selected – these are the easiest and the least-movement shapes':`Already selected – you're using the ${w} shapes`));return}
     const c=e.target.closest('[data-ch]');if(c)voicingPicker(c.dataset.ch,seq);
   };
 }
@@ -1041,15 +1058,16 @@ const setFont=d=>{SET.font=Math.max(11,Math.min(30,(SET.font||16)+d));DB.set('se
 $('fUp').onclick=()=>setFont(1);$('fDn').onclick=()=>setFont(-1);
 
 /* ---- floating controls ---- */
-function openCtl(){$('pCtl').classList.add('on');$('pBack').classList.add('on');$('pFab').classList.add('open');$('pFab').setAttribute('aria-expanded','true');$('pFab').setAttribute('aria-label','Close controls');$('pCtl').setAttribute('aria-hidden','false')}
-function closeCtl(){$('pCtl').classList.remove('on');$('pBack').classList.remove('on');$('pFab').classList.remove('open');$('pFab').setAttribute('aria-expanded','false');$('pFab').setAttribute('aria-label','Open controls');$('pCtl').setAttribute('aria-hidden','true')}
+function openCtl(){if(!$('pCtl').classList.contains('on')){try{history.pushState({ctl:1},'')}catch(e){}}$('pCtl').classList.add('on');$('pBack').classList.add('on');$('pFab').classList.add('open');$('pFab').setAttribute('aria-expanded','true');$('pFab').setAttribute('aria-label','Close controls');$('pCtl').setAttribute('aria-hidden','false')}
+function closeCtl(fromPop){if(fromPop!==true&&$('pCtl').classList.contains('on')&&history.state&&history.state.ctl){try{history.back()}catch(e){}}$('pCtl').classList.remove('on');$('pBack').classList.remove('on');$('pFab').classList.remove('open');$('pFab').setAttribute('aria-expanded','false');$('pFab').setAttribute('aria-label','Open controls');$('pCtl').setAttribute('aria-hidden','true')}
 $('pFab').onclick=()=>$('pCtl').classList.contains('on')?closeCtl():openCtl();
-$('pBack').onclick=closeCtl;$('pClose').onclick=closeCtl;
+$('pBack').onclick=()=>closeCtl();$('pClose').onclick=()=>closeCtl();
+window.addEventListener('popstate',()=>{if($('pCtl').classList.contains('on'))closeCtl(true)});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('pCtl').classList.contains('on'))closeCtl()});
 {let y0=null;const el=$('pCtl');
  el.addEventListener('touchstart',e=>{y0=(el.scrollTop<=0)?e.touches[0].clientY:null},{passive:true});
  el.addEventListener('touchend',e=>{if(y0!=null&&e.changedTouches[0].clientY-y0>70)closeCtl();y0=null},{passive:true});}
-['pShapes','pPrint','pEdit'].forEach(id=>$(id).addEventListener('click',closeCtl));
+['pShapes','pPrint','pEdit'].forEach(id=>$(id).addEventListener('click',()=>closeCtl()));
 $('pMiniStop').onclick=()=>stopPlay();
 $('pMiniUp').onclick=()=>$('bUp').click();$('pMiniDn').onclick=()=>$('bDn').click();
 new MutationObserver(()=>{$('pMiniB').textContent=$('bVal').textContent}).observe($('bVal'),{childList:true,characterData:true,subtree:true});
