@@ -174,7 +174,7 @@ svg.dg{width:100%;height:auto;display:block}
   #printArea .pfoot{margin-top:14px;color:#777;font-size:.7em}
 }
 .stb{display:inline-block;font-size:11px;font-weight:600;border-radius:10px;padding:1px 7px;margin-left:4px;vertical-align:middle;font-family:system-ui,sans-serif}
-.st-scan{background:rgba(229,104,74,.18);color:#ff9a8a}.st-wip{background:rgba(240,166,64,.18);color:var(--ac)}.st-ready{background:rgba(127,197,139,.18);color:var(--ok)}
+.st-scan{background:rgba(229,104,74,.18);color:#ff9a8a}.st-wip{background:rgba(240,166,64,.18);color:var(--ac)}.st-ready{background:rgba(127,197,139,.18);color:var(--ok)}.st-auto{background:rgba(120,160,240,.18);color:#9fbcff}
 .stbar{border-radius:10px;padding:8px 10px;margin:6px 0;font-size:13px}
 .krow{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:8px 10px;margin:8px 0}
 .krow.cur{border-color:var(--ac)}
@@ -211,7 +211,7 @@ code{background:var(--panel2);padding:0 4px;border-radius:4px;font-size:.92em}
   </div>
   <div class="seg libtabs" style="margin-bottom:8px;width:100%"><button data-lm="phone" class="on" style="flex:1">📱 Phone</button><button data-lm="fav" style="flex:1">★ Favorites</button><button data-lm="community" style="flex:1">🌐 Online</button><button data-lm="mine" style="flex:1">👤 Mine</button></div>
   <div class="row" style="justify-content:space-between;margin-bottom:8px">
-    <span class="row" style="gap:6px"><span class="muted small" id="libCount"></span><select id="stFilter" class="sm" style="padding:3px 6px;font-size:12px"><option value="">All statuses</option><option value="scanned">📷 Scanned</option><option value="imported">📥 Imported</option><option value="wip">✏️ In progress</option><option value="ready">✅ Ready</option><option value="none">Not set</option></select></span>
+    <span class="row" style="gap:6px"><span class="muted small" id="libCount"></span><select id="stFilter" class="sm" style="padding:3px 6px;font-size:12px"><option value="">All statuses</option><option value="scanned">📷 Scanned</option><option value="imported">📥 Imported</option><option value="auto">🤖 Auto-timed</option><option value="wip">✏️ In progress</option><option value="ready">✅ Ready</option><option value="none">Not set</option></select></span>
     <button class="sm pri" id="newSong">＋ New song</button>
   </div>
   <div id="list"></div>
@@ -267,13 +267,13 @@ code{background:var(--panel2);padding:0 4px;border-radius:4px;font-size:.92em}
         <div><label>Tempo (BPM)</label><div class="row" style="flex-wrap:nowrap"><input type="number" id="mBpm" min="30" max="260"><button class="sm" id="mTap">tap</button></div></div>
         <div><label>Beats per bar</label><select id="mTs"><option>2</option><option>3</option><option selected>4</option><option>6</option></select></div>
         <div><label>Tags</label><input type="text" id="mTags" placeholder="love, slow"></div>
-        <div class="full"><label>Status</label><div class="row" style="flex-wrap:nowrap"><select id="mStatus" style="flex:1"><option value="">(not set)</option><option value="scanned">📷 Scanned – timing not set yet</option><option value="imported">📥 Imported – timing not set yet</option><option value="wip">✏️ In progress</option><option value="ready">✅ Ready – fully adjusted</option></select><button class="sm" id="mReady">Mark ready</button></div></div>
+        <div class="full"><label>Status</label><div class="row" style="flex-wrap:nowrap"><select id="mStatus" style="flex:1"><option value="">(not set)</option><option value="scanned">📷 Scanned – timing not set yet</option><option value="imported">📥 Imported – timing not set yet</option><option value="auto">🤖 Auto-timed – please check</option><option value="wip">✏️ In progress</option><option value="ready">✅ Ready – fully adjusted</option></select><button class="sm" id="mReady">Mark ready</button></div></div>
         <div class="full"><label>Strumming pattern (whole song)</label><div class="row" style="flex-wrap:nowrap"><select id="mStrum" style="flex:1"></select><button class="sm" id="mStrumLib">Patterns…</button></div></div>
       </div>
     </div>
     <div class="row" style="justify-content:space-between;margin-bottom:10px">
       <div class="seg"><button id="eVis" class="on">Visual</button><button id="eTxt">Text</button></div>
-      <div class="row"><button class="sm" id="eUndo">↶ Undo</button><button class="sm" id="eHelp">?</button></div>
+      <div class="row"><button class="sm" id="eAuto" title="Guess beats from the lyrics">🤖 Auto-time</button><button class="sm" id="eUndo">↶ Undo</button><button class="sm" id="eHelp">?</button></div>
     </div>
     <div id="eMoveBar" class="card" style="display:none;border-color:var(--ac)"><b>Move chord:</b> tap the syllable where it should go. <button class="sm" id="eMoveCancel">Cancel</button></div>
     <div id="eVisual"></div>
@@ -746,7 +746,7 @@ $('aiBtn').onclick=async()=>{
 };
 
 /* ===== SONG STATUS ===== */
-const STATUS={scanned:{label:'📷 Scanned',long:'Scanned – timing not set',cls:'st-scan'},imported:{label:'📥 Imported',long:'Imported – timing not set',cls:'st-scan'},wip:{label:'✏️ In progress',long:'Work in progress',cls:'st-wip'},ready:{label:'✅ Ready',long:'Fully adjusted',cls:'st-ready'}};
+const STATUS={scanned:{label:'📷 Scanned',long:'Scanned – timing not set',cls:'st-scan'},imported:{label:'📥 Imported',long:'Imported – timing not set',cls:'st-scan'},wip:{label:'✏️ In progress',long:'Work in progress',cls:'st-wip'},auto:{label:'🤖 Auto-timed',long:'Auto-timed – please check the timing',cls:'st-auto'},ready:{label:'✅ Ready',long:'Fully adjusted',cls:'st-ready'}};
 const statusOf=d=>STATUS[d.meta.status]?d.meta.status:'';
 const statusBadge=st=>st?`<span class="stb ${STATUS[st].cls}">${STATUS[st].label}</span>`:'';
 let STFILTER='';
@@ -841,6 +841,91 @@ function previewPattern(p){
   if(!p)return;const c=ac(),bpm=P.bpm||90,bd=60/bpm;let t=c.currentTime+0.08;
   const shapes=[shapeFor('G'),shapeFor('C')];
   for(let bar=0;bar<2;bar++)for(let beat=0;beat<p.ts;beat++){schedPatternBeat(p,shapes[bar],beat,t,bd,SET.strum||0.5);t+=bd}
+}
+
+/* ===== AUTO-TIMING (rule based) =====
+   Guesses how many beats each chord lasts from how much lyric sits under it.
+   1. Count syllables from each chord to the next chord (or the end of the line).
+   2. Compare with the song's typical chord length (median) – that length = 1 bar.
+   3. Short (< 0.6×) = half bar, normal = 1 bar, long (≥ 1.75×) = 2 bars.
+   4. Half bars must pair up inside a line, otherwise they become full bars.
+   5. A line with an odd number of bars gets its longest chord stretched by one bar (phrases are usually 2 or 4 bars).
+   Chords that already have beats are never touched. Chord-only lines (intro, interlude) stay 1 bar per chord. */
+const AT_LO=0.6,AT_HI=1.75;
+function sylCountLine(text){const sy=syllables(text);return sy.filter(s=>s.t.trim()).map(s=>s.start)}
+function autoTimeDoc(d,opt={}){
+  const ts=d.meta.ts||4,half=ts%2===0?ts/2:0,rep={chords:0,half:0,double:0,unsure:0,strum:'',skipped:0};
+  const items=[];// lyric chords needing beats
+  d.sections.forEach(s=>s.lines.forEach(l=>{
+    if(l.comment!=null||!l.chords.length)return;
+    const lyric=(l.text||'').trim().length>0;
+    const starts=lyric?sylCountLine(l.text):[];
+    const cnt=(a,b)=>starts.filter(p=>p>=a&&p<b).length;
+    const groups=lineGroups(l).filter(g=>g.chords.length);
+    groups.forEach((g,gi)=>{const end=gi+1<groups.length?groups[gi+1].pos:Infinity;const span=lyric?cnt(g.pos,end)/g.chords.length:0;
+      g.chords.forEach(c=>{const ch=l.chords[c.ci];if(ch.b&&!opt.all){rep.skipped++;return}items.push({l,ch,span,lyric,last:gi===groups.length-1})})});
+  }));
+  const spans=items.filter(x=>x.lyric&&x.span>0).map(x=>x.span).sort((a,b)=>a-b);
+  const M=spans.length>=4?spans[Math.floor(spans.length/2)]:(spans.length?spans[Math.floor(spans.length/2)]:4)||4;
+  items.forEach(x=>{
+    if(!x.lyric){x.b=ts;return}
+    const r=x.span/M;x.r=r;
+    if(Math.abs(r-AT_LO)<0.12||Math.abs(r-AT_HI)<0.2)x.unsure=true;
+    x.b=r<AT_LO&&half?half:r>=AT_HI?ts*2:ts;
+  });
+  // pair half bars and even out phrases, line by line
+  const byLine=new Map();items.forEach(x=>{if(!byLine.has(x.l))byLine.set(x.l,[]);byLine.get(x.l).push(x)});
+  for(const [l,xs] of byLine){
+    for(let i=0;i<xs.length;i++){if(xs[i].b!==half||!half)continue;if(i+1<xs.length&&xs[i+1].b===half){i++;continue}xs[i].b=ts}
+    if(!xs[0].lyric)continue;
+    const all=l.chords.reduce((s,c)=>{const x=xs.find(y=>y.ch===c);return s+(x?x.b:(c.b||ts))},0);
+    if(Math.round(all/ts)%2===1&&all/ts>1){const cand=xs.filter(x=>x.b===ts&&x.r>1.1).sort((a,b)=>(b.last-a.last)||(b.r-a.r))[0];if(cand)cand.b=ts*2}
+  }
+  items.forEach(x=>{x.ch.b=x.b===ts?null:x.b;rep.chords++;if(x.b<ts)rep.half++;if(x.b>ts)rep.double++;if(x.unsure)rep.unsure++;if(x.b===ts&&opt.explicit!==false)x.ch.b=ts});
+  if(opt.strum!==false&&!d.meta.strum){const p=guessStrum(d);if(p){d.meta.strum=p;rep.strum=p}}
+  rep.score=rep.chords?Math.round(100*(1-rep.unsure/rep.chords)):100;
+  return rep;
+}
+function guessStrum(d){
+  const ts=d.meta.ts||4,bpm=d.meta.bpm||0,tags=(d.meta.tags||'').toLowerCase();
+  if(ts===3)return /folk|country/.test(tags)?'Waltz down-up':'Waltz';
+  if(ts===6)return '6/8 ballad';if(ts===2)return 'March / polka';
+  if(/rock/.test(tags)||bpm>=130)return 'Rock eighths';
+  if(/slow|ballad|love|ညင်/.test(tags)||(bpm&&bpm<78))return 'Slow ballad';
+  return 'Pop / folk (Old Faithful)';
+}
+// which songs still need timing: lyric chords without beats, not Ready / In progress
+function needsTiming(d){const st=d.meta.status||'';if(st==='ready'||st==='wip'||st==='auto')return false;return d.sections.some(s=>s.lines.some(l=>l.comment==null&&(l.text||'').trim()&&l.chords.some(c=>!c.b)))}
+async function autoTimeBatch(limit,withStrum){
+  const todo=SONGS.filter(s=>needsTiming(parsed(s))).sort((a,b)=>(parsed(a).meta.title||'').localeCompare(parsed(b).meta.title||'')).slice(0,limit||Infinity);
+  const run={at:Date.now(),items:[]};const tot={songs:0,chords:0,half:0,double:0,strum:0};const flagged=[];
+  for(const s of todo){
+    const d=parseSong(s.text);const before=s.text;const r=autoTimeDoc(d,{strum:withStrum});if(!r.chords)continue;
+    d.meta.status='auto';s.text=serSong(d);s.rev=Date.now();s.dirty=true;await DB.put(s);indexSong(s);
+    run.items.push({id:s.id,before});tot.songs++;tot.chords+=r.chords;tot.half+=r.half;tot.double+=r.double;if(r.strum)tot.strum++;
+    if(r.score<75)flagged.push({id:s.id,title:d.meta.title,score:r.score});
+  }
+  await DB.set('autoRun',run);return {tot,flagged,left:SONGS.filter(s=>needsTiming(parsed(s))).length};
+}
+async function undoAutoRun(){const run=await DB.get('autoRun',null);if(!run)return 0;let n=0;for(const it of run.items){const s=SONGS.find(x=>x.id===it.id);if(!s)continue;s.text=it.before;s.rev=Date.now();s.dirty=true;await DB.put(s);indexSong(s);n++}await DB.set('autoRun',null);return n}
+function autoTimeModal(){
+  const need=SONGS.filter(s=>needsTiming(parsed(s))).length,autoN=SONGS.filter(s=>parsed(s).meta.status==='auto').length;
+  openModal(`<div class="row" style="justify-content:space-between"><b>🤖 Auto-time songs</b><button onclick="closeModal()">✕</button></div>
+  <div class="hint">Guesses half bar, one bar or two bars for each chord from how much lyric is under it, and picks a strum pattern if the song has none. Songs marked ✅ Ready or ✏️ In progress, and chords that already have beats, are not touched. Timed songs get the status <b>🤖 Auto-timed – check</b>.</div>
+  <div class="card" style="margin:10px 0" id="atNeed"><b>${need}</b> song(s) need timing${autoN?` · ${autoN} already auto-timed`:''}.</div>
+  <div class="row"><label>How many</label><select id="atN"><option value="20">20</option><option value="100" selected>100</option><option value="500">500</option><option value="0">All ${need}</option></select></div>
+  <label class="row" style="margin-top:8px"><input type="checkbox" id="atStrum" checked> Also choose a strum pattern when missing</label>
+  <div class="row" style="margin-top:12px"><button class="pri" id="atGo"${need?'':' disabled'}>Auto-time</button><button id="atUndo">↶ Undo last run</button></div>
+  <div id="atOut" style="margin-top:10px"></div>`);
+  $('atGo').onclick=async()=>{$('atGo').disabled=true;$('atOut').innerHTML='<div class="hint">Working…</div>';
+    const r=await autoTimeBatch(+$('atN').value,$('atStrum').checked);const t=r.tot;$('atNeed').innerHTML=`<b>${r.left}</b> song(s) need timing · ${SONGS.filter(x=>parsed(x).meta.status==='auto').length} auto-timed`;$('atGo').disabled=!r.left;
+    $('atOut').innerHTML=`<div class="card" style="margin:0;border-color:var(--ok)"><b>${t.songs} song(s) timed</b> · ${t.chords} chords: ${t.half} half bar, ${t.double} two bars, the rest one bar${t.strum?` · strum pattern set on ${t.strum}`:''}. ${r.left} song(s) still need timing.</div>
+     ${r.flagged.length?`<div class="hint" style="margin-top:8px">Check these first – many chords were close to a borderline:</div><div>${r.flagged.slice(0,30).map(f=>`<button class="sm" style="margin:3px" data-atopen="${f.id}">${esc(f.title||'(untitled)')} · ${f.score}%</button>`).join('')}</div>`:''}
+     <div class="row" style="margin-top:8px"><button id="atShow">Show 🤖 Auto-timed songs in Library</button></div>`;
+    $('atShow').onclick=()=>{STFILTER='auto';$('stFilter').value='auto';closeModal();showView('lib');renderList()};
+    renderList();};
+  $('atUndo').onclick=async()=>{const n=await undoAutoRun();toast(n?`Undone – ${n} song(s) restored`:'Nothing to undo');renderList();closeModal()};
+  $('mbox').addEventListener('click',e=>{const b=e.target.closest('[data-atopen]');if(b){const s=SONGS.find(x=>x.id===b.dataset.atopen);if(s){closeModal();openStudio(s);showView('studio')}}});
 }
 
 /* ===== CHORD SHAPES: choose fingerings, compare keys, least-movement plan ===== */
@@ -952,7 +1037,7 @@ function renderPlayer(){
   const d=P.doc;P.ts=d.meta.ts||4;P.tl=buildTimeline(d);
   $('pTitle').textContent=d.meta.title||'Untitled';
   const key=d.meta.key?transposeStr(d.meta.key,P.t,'auto'):'';
-  {const st=statusOf(d);$('pStatus').innerHTML=st&&st!=='ready'?`<div class="stbar ${STATUS[st].cls}">${STATUS[st].long}${st==='imported'?'. Chords in the lyrics play one bar each until you set their beats in Studio; intro and interlude bars already have the right beats.':st==='scanned'?'. Every chord plays one bar until you set the beats in Studio.':'.'} <button class="sm" onclick="$('pEdit').click()">✎ Fix in Studio</button></div>`:''}
+  {const st=statusOf(d);$('pStatus').innerHTML=st&&st!=='ready'?`<div class="stbar ${STATUS[st].cls}">${STATUS[st].long}${st==='imported'?'. Chords in the lyrics play one bar each until you set their beats in Studio; intro and interlude bars already have the right beats.':st==='scanned'?'. Every chord plays one bar until you set the beats in Studio.':st==='auto'?'. Half-bar and two-bar chords were guessed from the lyrics; play along and fix any that feel wrong.':'.'} <button class="sm" onclick="$('pEdit').click()">✎ Fix in Studio</button></div>`:''}
   $('pSub').textContent=[d.meta.artist,key?'Key '+key+(P.capo?` (capo ${P.capo}: play ${transposeStr(d.meta.key,P.t-P.capo,'auto')} shapes)`:''):'',P.ts+'/4'].filter(Boolean).join(' · ');
   $('bVal').textContent=P.bpm;$('kVal').textContent=key?key+(P.t?' ('+(P.t>0?'+':'')+P.t+')':''):(P.t>0?'+':'')+P.t;$('cVal').textContent=P.capo;
   $('beats').innerHTML=Array.from({length:P.ts},(_,i)=>`<i data-b="${i}"></i>`).join('');
@@ -1118,6 +1203,11 @@ $('mReady').onclick=()=>{$('mStatus').value='ready';readMeta();E.dirty=true;toas
 $('mStrumLib').onclick=()=>patternModal(E.doc.meta.ts||4,name=>{snapshot();E.doc.meta.strum=name;fillStrumSel();renderStudio()});
 $('mTap').onclick=()=>tapTempo(E.taps,b=>{$('mBpm').value=b;readMeta();E.dirty=true});
 function snapshot(){readMeta();E.undo.push(serSong(E.doc));if(E.undo.length>60)E.undo.shift();E.dirty=true}
+$('eAuto').onclick=()=>{readMeta();if(E.mode==='txt')E.doc=parseSong($('eTA').value);
+  const missing=E.doc.sections.some(s=>s.lines.some(l=>l.comment==null&&l.chords.some(c=>!c.b)));
+  const go=all=>{snapshot();const r=autoTimeDoc(E.doc,{all});if((E.doc.meta.status||'')!=='ready')E.doc.meta.status='auto';fillMeta();if(E.mode==='txt')$('eTA').value=serSong(E.doc);renderStudio();toast(`${r.chords} chords timed: ${r.half} half bar, ${r.double} two bars${r.strum?' · strum: '+r.strum:''}. Check, then Save.`)};
+  if(missing)go(false);else openModal(`<b>Every chord already has beats.</b><div class="hint">Guess them all again from the lyrics? Your current timing is replaced (Undo brings it back).</div><div class="row" style="margin-top:10px"><button class="pri" id="atAll">Re-time all chords</button><button onclick="closeModal()">Cancel</button></div>`),$('atAll')&&($('atAll').onclick=()=>{closeModal();go(true)});
+};
 $('eUndo').onclick=()=>{if(!E.undo.length){toast('Nothing to undo');return}E.doc=parseSong(E.undo.pop());fillMeta();renderStudio()};
 function setMode(m){
   if(m===E.mode&&m!=='vis'){}
@@ -1639,9 +1729,11 @@ $('setBtn').onclick=async()=>{
      <div class="hint">Last update: ${SET.lastSync?new Date(SET.lastSync).toLocaleString():'never'}. Songs you edited here are never overwritten by the online copy.</div></div>
    <div class="card" style="margin:0"><b>Publish your edits</b><div class="hint">${dirty} song(s) edited on this device${delN?`, ${delN} deleted`:''}. Export the full database as <code>songs.json</code> and replace the file in your GitHub repo; every phone picks it up next time it is online.</div>
      <div class="row" style="margin-top:8px"><button class="pri" id="stExp">⬇ Download songs.json</button><button id="stCopy">Copy JSON</button><button id="stPub">Mark as published</button></div></div>
+   <div class="card" style="margin:0"><b>🤖 Auto-time songs</b><div class="hint">Guess half-bar / one-bar / two-bar chord timing and strum patterns for many songs at once.</div><button id="stAuto" style="margin-top:6px">Open auto-timer…</button></div>
    <div class="row"><label><button onclick="this.nextElementSibling.click()">⬆ Import / merge JSON</button><input type="file" id="stImp" accept=".json,application/json" style="display:none"></label></div>
    <div class="row"><div class="ctl"><label>Click vol</label><input type="range" id="stClk" min="0" max="1" step="0.05" value="${SET.click}" style="width:90px"></div><div class="ctl"><label>Chord vol</label><input type="range" id="stStr" min="0" max="1" step="0.05" value="${SET.strum}" style="width:90px"></div></div>
   </div>`);
+  $('stAuto').onclick=()=>autoTimeModal();
   $('stUrl').onchange=async e=>{SET.dbUrl=e.target.value.trim()||'songs.json';await DB.set('settings',SET)};
   $('stBackGo').onclick=async()=>{SET.backend=$('stBack').value;SET.supaUrl=$('stSU').value.trim();SET.supaKey=$('stSK').value.trim();await DB.set('settings',SET);closeModal();await initCloud();toast('Accounts server: '+API.name)};
   $('stSync').onclick=()=>{SET.dbUrl=$('stUrl').value.trim()||'songs.json';DB.set('settings',SET);syncOnline(true)};

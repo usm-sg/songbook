@@ -1,7 +1,7 @@
 // Moe's Songbook service worker.
 // App page and songs.json: network first (so updates arrive), cached copy when offline.
 // Libraries, fonts, OCR data: cache first.
-const CACHE='moesongbook-v12';
+const CACHE='moesongbook-v13';
 const SHELL=['./','index.html','manifest.json','icon.svg'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
