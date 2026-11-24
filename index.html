@@ -194,6 +194,7 @@ svg.dg{width:100%;height:auto;display:block}
 .mshape .fs{font:11px ui-monospace,monospace;color:var(--mu)}
 #nowDg{cursor:pointer}
 .prem{color:var(--ac)}.prem-tag{color:var(--ac);font-size:12.5px;font-weight:600}
+.passchip{font-size:11px;color:#9fbcff;white-space:nowrap}#acctBtn{white-space:nowrap}
 .lockbox{background:rgba(240,166,64,.1);border:1px solid var(--ac);border-radius:10px;padding:10px;margin-top:6px;font-size:13.5px}
 .lock{font-size:18px}
 code{background:var(--panel2);padding:0 4px;border-radius:4px;font-size:.92em}
@@ -629,6 +630,8 @@ const DB={db:null,mem:new Map(),kvm:new Map(),
   async set(k,v){this.kvm.set(k,v);if(this.db)try{await this.req('kv','readwrite',s=>s.put(v,k))}catch(e){}}
 };
 let SONGS=[];        // {id,rev,text,dirty,emb,embRev}
+// the songbook's own Supabase project (public URL + anon key are meant to be in the app; row security protects the data)
+const SUPA_DEFAULT={url:'https://fieyrncaqozdcvocuids.supabase.co',key:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZpZXlybmNhcW96ZGN2b2N1aWRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTU1MjAxMTYsImV4cCI6MjExMTA5NjExNn0.0iHkxw39WrKdiWNTSMbuJW5fxW3vVlVlduA0VoIJ32o'};
 let SET={dbUrl:'songs.json',click:1,strum:0.5,lastSync:0,font:16,pClick:true,pStrum:false,pCount:true};
 const parsedCache=new Map();
 function parsed(s){const c=parsedCache.get(s.id);if(c&&c.rev===s.rev&&c.text===s.text)return c.d;const d=parseSong(s.text);parsedCache.set(s.id,{rev:s.rev,text:s.text,d});return d}
@@ -1030,7 +1033,7 @@ const dispC=(c,tr)=>transposeStr(c,P.t-P.capo+(tr||0),'auto');
 function applyPlayerPrefs(){P.click=SET.pClick!==false;P.strum=!!SET.pStrum;P.countIn=SET.pCount!==false;$('clkBtn').classList.toggle('on',P.click);$('strBtn').classList.toggle('on',P.strum);$('cntBtn').classList.toggle('on',P.countIn);const f=SET.font||16;$('fVal').textContent=f;$('pSheet').style.fontSize=f+'px';$('eVisual').style.fontSize=(f+1)+'px'}
 function openPlayer(s){if(!s)return;stopPlay();applyPlayerPrefs();P.patSel='song';
   {const src=s.lockedLocal&&s.src?s.src:s;P.shapeSongId=src.cloudId||(src.cloud?'c:'+src.cloud.id:src.id);P.shapeMap=Object.assign({},(SET.shapes||{})[P.shapeSongId]||{})}
-  if(s.premium&&!s.cloud&&!isPremiumUser(ME)&&!(ME&&ME.role==='admin'))s={id:s.id+':pv',rev:s.rev,text:makePreview(s.text),lockedLocal:true,src:s};P.song=s;P.doc=parsed(s);P.bpm=P.doc.meta.bpm||80;P.t=0;P.capo=0;P.loop=null;P.loopVal='';P.cur=-1;renderPlayer();showView('play');renderCloudBar();updFavBtn()}
+  if(s.premium&&!s.cloud&&!hasPremiumAccess(ME)&&!(ME&&ME.role==='admin'))s={id:s.id+':pv',rev:s.rev,text:makePreview(s.text),lockedLocal:true,src:s};P.song=s;P.doc=parsed(s);P.bpm=P.doc.meta.bpm||80;P.t=0;P.capo=0;P.loop=null;P.loopVal='';P.cur=-1;renderPlayer();showView('play');renderCloudBar();updFavBtn()}
 function renderPlayer(){
   if(!P.song){$('pEmpty').style.display='';$('pWrap').style.display='none';return}
   $('pEmpty').style.display='none';$('pWrap').style.display='';
@@ -1729,11 +1732,14 @@ $('setBtn').onclick=async()=>{
      <div class="hint">Last update: ${SET.lastSync?new Date(SET.lastSync).toLocaleString():'never'}. Songs you edited here are never overwritten by the online copy.</div></div>
    <div class="card" style="margin:0"><b>Publish your edits</b><div class="hint">${dirty} song(s) edited on this device${delN?`, ${delN} deleted`:''}. Export the full database as <code>songs.json</code> and replace the file in your GitHub repo; every phone picks it up next time it is online.</div>
      <div class="row" style="margin-top:8px"><button class="pri" id="stExp">⬇ Download songs.json</button><button id="stCopy">Copy JSON</button><button id="stPub">Mark as published</button></div></div>
+   <div class="card" style="margin:0"><b>🎬 Rewarded ads</b><div class="hint">Google Ad Manager rewarded ad unit for the web, e.g. <code>/1234567/songbook_rewarded</code>. Empty = pretend ad for testing. Time per ad and daily limit are set in the server (app_config "ads").</div>
+     <div class="row" style="margin-top:6px"><input type="text" id="stAd" value="${esc(SET.adUnit||'')}" placeholder="/network-code/ad-unit" style="flex:1"><button id="stAdSave">Save</button></div></div>
    <div class="card" style="margin:0"><b>🤖 Auto-time songs</b><div class="hint">Guess half-bar / one-bar / two-bar chord timing and strum patterns for many songs at once.</div><button id="stAuto" style="margin-top:6px">Open auto-timer…</button></div>
    <div class="row"><label><button onclick="this.nextElementSibling.click()">⬆ Import / merge JSON</button><input type="file" id="stImp" accept=".json,application/json" style="display:none"></label></div>
    <div class="row"><div class="ctl"><label>Click vol</label><input type="range" id="stClk" min="0" max="1" step="0.05" value="${SET.click}" style="width:90px"></div><div class="ctl"><label>Chord vol</label><input type="range" id="stStr" min="0" max="1" step="0.05" value="${SET.strum}" style="width:90px"></div></div>
   </div>`);
   $('stAuto').onclick=()=>autoTimeModal();
+  $('stAdSave').onclick=async()=>{SET.adUnit=$('stAd').value.trim();await DB.set('settings',SET);toast(SET.adUnit?'Ad unit saved':'Using the pretend ad')};
   $('stUrl').onchange=async e=>{SET.dbUrl=e.target.value.trim()||'songs.json';await DB.set('settings',SET)};
   $('stBackGo').onclick=async()=>{SET.backend=$('stBack').value;SET.supaUrl=$('stSU').value.trim();SET.supaKey=$('stSK').value.trim();await DB.set('settings',SET);closeModal();await initCloud();toast('Accounts server: '+API.name)};
   $('stSync').onclick=()=>{SET.dbUrl=$('stUrl').value.trim()||'songs.json';DB.set('settings',SET);syncOnline(true)};
@@ -1772,6 +1778,10 @@ function makePreview(text){ // metadata + the first part only
 }
 const bayes=(sum,n)=>(BAYES_C*BAYES_M+sum)/(BAYES_C+n);
 const isPremiumUser=u=>!!(u&&u.plan_until&&u.plan_until>Date.now());
+// premium songs readable: paid plan, or a free hour earned by watching an ad (ads do not give extra slots)
+const hasPass=u=>!!(u&&u.pass_until&&u.pass_until>Date.now());
+const hasPremiumAccess=u=>isPremiumUser(u)||hasPass(u);
+const AD_DEF={minutes:60,per_day:6};
 const slotsFor=u=>isPremiumUser(u)?Infinity:Math.min(SLOT_MAX,SLOT_BASE+Math.floor((u.good||0)/SLOT_STEP));
 
 /* ---------- Demo back end (pretend server on this device) ---------- */
@@ -1802,12 +1812,19 @@ const DemoAPI={
   },
   _u(id){return this.S.users.find(u=>u.id===id)},
   _profile(u){if(!u)return null;const mine=this.S.arrs.filter(a=>a.owner===u.id).map(a=>a.id);const good=this.S.ratings.filter(r=>mine.includes(r.arr)&&r.stars>=GOOD).length;
-    const used=this.S.arrs.filter(a=>a.owner===u.id&&a.visibility!=='private'&&a.status!=='rejected').length;return {...u,good,used}},
+    const used=this.S.arrs.filter(a=>a.owner===u.id&&a.visibility!=='private'&&a.status!=='rejected').length;
+    const ads_today=(u.adLog||[]).filter(t=>t>Date.now()-864e5).length;return {...u,good,used,ads_today}},
+  async adsConfig(){return {...AD_DEF,...(this.S.config.ads||{})}},
+  async grantAdPass(){const u=this._u(this.uid);if(!u)throw new Error('Sign in first');const c=await this.adsConfig();
+    u.adLog=(u.adLog||[]).filter(t=>t>Date.now()-864e5);
+    if(u.adLog.length>=c.per_day)throw new Error('Daily limit reached – try again later');
+    if(u.adLog.some(t=>t>Date.now()-30e3))throw new Error('Too fast – please wait a moment');
+    u.adLog.push(Date.now());u.pass_until=Math.max(Date.now(),u.pass_until||0)+c.minutes*60e3;await this.save();return u.pass_until},
   _stats(a){const rs=this.S.ratings.filter(r=>r.arr===a.id);let sum=0,w=0;for(const r of rs){const u=this._u(r.user);const wt=u&&Date.now()-u.created<30*DAY?0.5:1;sum+=r.stars*wt;w+=wt}
     return {n:rs.length,avg:rs.length?rs.reduce((x,r)=>x+r.stars,0)/rs.length:0,score:bayes(sum,w)}},
   _song(k){return this.S.songs.find(s=>s.key===k)||{key:k,premium:false}},
   _view(a,me){ // what this user may see of an arrangement
-    const song=this._song(a.song_key),own=me&&a.owner===me.id,locked=song.premium&&!own&&!isPremiumUser(me)&&!(me&&me.role==='admin');
+    const song=this._song(a.song_key),own=me&&a.owner===me.id,locked=song.premium&&!own&&!hasPremiumAccess(me)&&!(me&&me.role==='admin');
     const o=this._u(a.owner);return {...a,...this._stats(a),owner_name:o?o.name:'?',premium:!!song.premium,licensed_by:song.licensed_by||'',locked,text:locked?makePreview(a.text):a.text};
   },
   async me(){return this._profile(this._u(this.uid))},
@@ -1883,7 +1900,7 @@ const SupaAPI={
   },
   ok(r){if(r.error)throw new Error(r.error.message);return r.data},
   async me(){if(!this.user)return null;const p=this.ok(await this.sb.from('profile_view').select('*').eq('id',this.user.id).maybeSingle());if(!p)return null;
-    return {id:p.id,name:p.display_name,role:p.role,country:p.country,plan_until:p.plan_until?Date.parse(p.plan_until):0,created:Date.parse(p.created_at),good:p.good,used:p.used}},
+    return {id:p.id,name:p.display_name,role:p.role,country:p.country,plan_until:p.plan_until?Date.parse(p.plan_until):0,pass_until:p.pass_until?Date.parse(p.pass_until):0,ads_today:p.ads_today||0,created:Date.parse(p.created_at),good:p.good,used:p.used}},
   async signInOAuth(provider){this.ok(await this.sb.auth.signInWithOAuth({provider,options:{redirectTo:location.origin+location.pathname}}))},
   async signInEmail(email){this.ok(await this.sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname}}))},
   async signOut(){await this.sb.auth.signOut();this.user=null},
@@ -1908,6 +1925,8 @@ const SupaAPI={
   async rate(id,stars){if(!this.user)throw new Error('Sign in to rate');this.ok(await this.sb.from('ratings').upsert({arrangement_id:id,user_id:this.user.id,stars},{onConflict:'arrangement_id,user_id'}))},
   async report(id,reason){if(!this.user)throw new Error('Sign in to report');this.ok(await this.sb.from('reports').insert({arrangement_id:id,user_id:this.user.id,reason}))},
   async config(){const r=this.ok(await this.sb.from('app_config').select('value').eq('key','wallets').maybeSingle());return r?r.value:{}},
+  async adsConfig(){const r=this.ok(await this.sb.from('app_config').select('value').eq('key','ads').maybeSingle());return {...AD_DEF,...(r?r.value:{})}},
+  async grantAdPass(){const t=this.ok(await this.sb.rpc('grant_ad_pass'));return Date.parse(t)},
   async pay(p){if(!this.user)throw new Error('Sign in first');return this.ok(await this.sb.from('payments').insert({user_id:this.user.id,country:p.country,period:p.period,months:p.months,amount:p.amount,currency:p.currency,method:p.method,txn:p.txn,note:p.note||''}).select().single())},
   async myPayments(){return this.ok(await this.sb.from('payments').select('*').eq('user_id',this.user.id).order('created_at',{ascending:false})).map(p=>({...p,created:Date.parse(p.created_at)}))},
   async simulateCard(){throw new Error('Card payments need Stripe to be connected (Phase 3).')},
@@ -1934,9 +1953,71 @@ async function initCloud(){
   await refreshAccount();
   openShareFromUrl();
 }
+
+/* ===== REWARDED ADS: watch one ad → premium songs free for a while =====
+   The reward is granted by the server (grant_ad_pass), which also enforces the daily limit.
+   Ad source: Google Ad Manager rewarded ad (GPT) when an ad unit is set in Settings, otherwise a pretend ad for testing. */
+let ADCFG={...AD_DEF};
+const adMinsLabel=()=>ADCFG.minutes%60===0?(ADCFG.minutes===60?'1 hour':ADCFG.minutes/60+' hours'):ADCFG.minutes+' min';
+function passLeft(){const ms=(ME&&ME.pass_until||0)-Date.now();if(ms<=0)return '0m';const m=Math.ceil(ms/60e3);return m>=60?Math.floor(m/60)+'h '+(m%60)+'m':m+'m'}
+function lockboxHtml(){
+  const canAd=!isPremiumUser(ME);
+  return `<div class="lockbox"><b>Preview only</b> – the first part of the song.<br>
+    ${canAd?`<button class="pri sm" id="cbAd">🎬 Watch an ad – ${adMinsLabel()} free</button> `:''}<button class="sm${canAd?'':' pri'}" id="cbGo">See Premium prices</button>
+    ${canAd?`<div class="small muted" style="margin-top:4px">One short ad unlocks every premium song for ${adMinsLabel()}. Up to ${ADCFG.per_day} a day.</div>`:''}</div>`;
+}
+function wireLockbox(){if($('cbGo'))$('cbGo').onclick=premiumModal;if($('cbAd'))$('cbAd').onclick=()=>watchAdForPass()}
+async function loadAdCfg(){try{ADCFG={...AD_DEF,...(await API.adsConfig())}}catch(e){}}
+async function watchAdForPass(){
+  if(!ME){toast('Sign in first – the free time is saved to your account');accountModal();return}
+  if(isPremiumUser(ME)){toast('You have Premium – no ads needed');return}
+  if((ME.ads_today||0)>=ADCFG.per_day){toast(`You have watched ${ADCFG.per_day} ads in the last 24 hours – try again later`);return}
+  if(!navigator.onLine){toast('Ads need an internet connection');return}
+  let ok=false;try{ok=await showRewardedAd()}catch(e){toast(e.message||'No ad available right now – try again later');return}
+  if(!ok){toast('Ad closed early – no free time this time');return}
+  try{await API.grantAdPass();await refreshAccount();
+    toast(`🎉 Premium songs free until ${new Date(ME.pass_until).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}`);reopenCurrent()}
+  catch(e){toast(e.message)}
+}
+// show the full song again after access changes
+async function reopenCurrent(){
+  const s=P.song;if(!s)return;
+  if(s.lockedLocal&&s.src){openPlayer(s.src);return}
+  if(s.cloud){try{const fresh=await API.get(s.cloud.id);openCloud(fresh)}catch(e){}return}
+  if(s.premium&&!hasPremiumAccess(ME))openPlayer(s);
+}
+// pass countdown in the header; lock premium songs again when it ends
+let passWas=false;
+setInterval(()=>{const on=hasPass(ME);if(on){const c=document.querySelector('#acctBtn .passchip');if(c)c.textContent='🎬 '+passLeft()}
+  if(passWas&&!on){refreshAccount();if(!isPremiumUser(ME)){toast('Your free premium time has ended');if(P.song&&(P.song.premium||(P.song.cloud&&P.song.cloud.premium))&&!P.playing)reopenCurrent()}}passWas=on},20e3);
+function showRewardedAd(){return SET.adUnit&&API.name!=='demo'?gptRewarded(SET.adUnit):demoAd()}
+// pretend ad for testing: must stay open for the countdown to earn the reward
+function demoAd(){return new Promise(res=>{let n=15,done=false;
+  openModal(`<div style="text-align:center"><div class="muted small">Advertisement · demo</div>
+   <div style="height:180px;margin:10px 0;border-radius:12px;background:linear-gradient(135deg,#2c3e66,#6a3d7a);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700">Your ad here</div>
+   <div id="adCnt">Reward in <b>${n}</b> s</div><button id="adClose" style="margin-top:10px">Close</button></div>`);
+  const t=setInterval(()=>{n--;if(n<=0){clearInterval(t);done=true;$('adCnt').innerHTML='✓ Reward earned';$('adClose').textContent='Close and continue';$('adClose').classList.add('pri')}else if($('adCnt'))$('adCnt').innerHTML=`Reward in <b>${n}</b> s`},1000);
+  $('adClose').onclick=()=>{clearInterval(t);closeModal();res(done)};});}
+// Google Ad Manager rewarded ad for web (GPT). Ad unit path from Settings, e.g. /1234567/songbook_rewarded
+function gptRewarded(path){return new Promise((res,rej)=>{
+  const go=()=>{const g=window.googletag;let slot=null,granted=false,fin=false;const end=v=>{if(fin)return;fin=true;try{g.destroySlots([slot])}catch(e){}res(v)};
+    g.cmd.push(()=>{slot=g.defineOutOfPageSlot(path,g.enums.OutOfPageFormat.REWARDED);
+      if(!slot){rej(new Error('Rewarded ads are not supported on this page'));return}
+      slot.addService(g.pubads());
+      g.pubads().addEventListener('rewardedSlotReady',e=>e.makeRewardedVisible());
+      g.pubads().addEventListener('rewardedSlotGranted',()=>{granted=true});
+      g.pubads().addEventListener('rewardedSlotClosed',()=>end(granted));
+      g.pubads().addEventListener('slotRenderEnded',e=>{if(e.slot===slot&&e.isEmpty){fin=true;try{g.destroySlots([slot])}catch(x){}rej(new Error('No ad available right now – try again later'))}});
+      g.enableServices();g.display(slot);});
+    setTimeout(()=>{if(!fin&&!granted){fin=true;rej(new Error('No ad available right now – try again later'))}},20000);};
+  if(window.googletag&&googletag.apiReady)go();
+  else{window.googletag=window.googletag||{cmd:[]};const sc=document.createElement('script');sc.async=true;sc.src='https://securepubads.g.doubleclick.net/tag/js/gpt.js';sc.onerror=()=>rej(new Error('Ad blocked or offline'));document.head.appendChild(sc);go()}
+});}
+
 async function refreshAccount(){
   try{ME=await API.me()}catch(e){ME=null}
-  const b=$('acctBtn');b.innerHTML=ME?`${esc(ME.name.split(' ')[0])}${isPremiumUser(ME)?' <span style="color:var(--ac)">★</span>':''}`:'Sign in';
+  loadAdCfg();passWas=hasPass(ME);
+  const b=$('acctBtn');b.innerHTML=ME?`${esc(ME.name.split(' ')[0])}${isPremiumUser(ME)?' <span style="color:var(--ac)">★</span>':hasPass(ME)?` <span class="passchip">🎬 ${passLeft()}</span>`:''}`:'Sign in';
   b.classList.toggle('on',!!ME);
   await loadFavs();renderList();if(P.song)updFavBtn();
 }
@@ -1953,18 +2034,18 @@ function openCloud(a){openPlayer(cloudSong(a))}
 const starsHtml=(v,cls)=>[1,2,3,4,5].map(i=>`<span class="${cls||''}" data-star="${i}" style="cursor:pointer;color:${i<=Math.round(v)?'var(--ac)':'#5a4e45'}">★</span>`).join('');
 async function renderCloudBar(){
   const bar=$('pCloud');const s=P.song;
-  if(s&&s.lockedLocal){bar.style.display='';bar.innerHTML='<div class="prem-tag">★ Premium song</div><div class="lockbox"><b>Preview only.</b> Your Premium has ended – renew to play the whole song.<br><button class="pri sm" id="cbGo">See Premium prices</button></div>';$('cbGo').onclick=premiumModal;return}
+  if(s&&s.lockedLocal){bar.style.display='';bar.innerHTML='<div class="prem-tag">★ Premium song</div>'+lockboxHtml();wireLockbox();return}
   if(!s||!s.cloud){bar.innerHTML='';bar.style.display='none';return}
   const a=s.cloud;bar.style.display='';
   let mine=0;try{mine=await API.myRating(a.id)}catch(e){}
   bar.innerHTML=`${a.premium?`<div class="prem-tag">★ Premium song${a.licensed_by?' · licensed: '+esc(a.licensed_by):''}</div>`:''}
-   ${a.locked?`<div class="lockbox"><b>Preview only.</b> Subscribe to Premium to play the whole song.<br><button class="pri sm" id="cbGo">See Premium prices</button></div>`:''}
+   ${a.locked?lockboxHtml():''}
    <div class="row" style="justify-content:space-between;margin-top:6px">
     <span class="small">by <b>${esc(a.owner_name||'')}</b> · ${a.n?`${a.avg.toFixed(1)} ★ (${a.n})`:'no ratings yet'}</span>
     <span class="row" style="gap:4px"><span class="small muted">Your rating</span><span id="cbStars" style="font-size:20px">${starsHtml(mine)}</span></span>
    </div>
    <div class="row" style="margin-top:6px"><button class="sm" id="cbSave">⬇ Save offline</button><button class="sm" id="cbShare">🔗 Share</button><button class="sm" id="cbAll">Other versions</button><button class="sm danger" id="cbRep">⚑ Report</button></div>`;
-  if($('cbGo'))$('cbGo').onclick=premiumModal;
+  wireLockbox();
   $('cbStars').onclick=async e=>{const st=e.target.closest('[data-star]');if(!st)return;try{needMe();await API.rate(a.id,+st.dataset.star);toast('Thanks for rating');const fresh=await API.get(a.id);P.song.cloud=fresh;renderCloudBar()}catch(err){toast(err.message)}};
   $('cbSave').onclick=async()=>{
     if(a.locked){toast('Premium song: subscribe to save it');return}
@@ -2042,17 +2123,19 @@ async function accountModal(){
   openModal(`<div class="row" style="justify-content:space-between"><b>${esc(ME.name)}</b><button onclick="closeModal()">✕</button></div>
    <div class="card" style="margin:10px 0 8px">
     <div>${prem?`<b style="color:var(--ac)">★ Premium</b> until ${new Date(ME.plan_until).toLocaleDateString()}`:'<b>Free plan</b>'}</div>
+    ${!prem?`<div class="small" style="margin-top:4px">${hasPass(ME)?`🎬 Free premium hour: <b>${passLeft()}</b> left (until ${new Date(ME.pass_until).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})})`:'🎬 Watch an ad to play premium songs free for an hour.'} <span class="muted">${ME.ads_today||0} ad(s) watched in the last 24 h</span></div>`:''}
     <div class="small muted" style="margin-top:4px">Good ratings received: ${ME.good} · Sharing slots: ${ME.used} used of ${slots===Infinity?'unlimited':slots}${slots!==Infinity?` (next slot at ${(Math.floor(ME.good/SLOT_STEP)+1)*SLOT_STEP} good ratings)`:''}</div>
    </div>
    <div class="row"><span class="small muted">Country (sets your price)</span><select id="acCountry">${Object.entries(COUNTRIES).map(([c,n])=>`<option value="${c}"${c===ME.country?' selected':''}>${n}</option>`).join('')}</select></div>
    <div style="display:grid;gap:8px;margin-top:12px">
     <button class="pri" id="acPrem">${prem?'Extend Premium':'★ Go Premium'}</button>
+    ${!prem?`<button id="acAd">🎬 Watch an ad – ${adMinsLabel()} free</button>`:''}
     <button id="acPays">My payments</button>
     ${ME.role==='admin'?'<button id="acAdmin">🛠 Admin</button>':''}
     <button id="acOut">${API.name==='demo'?'Switch user / sign out':'Sign out'}</button>
    </div>`);
   $('acCountry').onchange=async e=>{ME=await API.updateProfile({country:e.target.value});toast('Country saved')};
-  $('acPrem').onclick=premiumModal;
+  $('acPrem').onclick=premiumModal;if($('acAd'))$('acAd').onclick=()=>{closeModal();watchAdForPass()};
   $('acPays').onclick=paymentsModal;
   if($('acAdmin'))$('acAdmin').onclick=()=>{closeModal();openAdmin()};
   $('acOut').onclick=async()=>{await API.signOut();ME=null;closeModal();await refreshAccount();if(API.name==='demo')accountModal()};
@@ -2068,6 +2151,7 @@ async function premiumModal(){
   const draw=()=>{
     openModal(`<div class="row" style="justify-content:space-between"><b>★ Premium songs</b><button onclick="closeModal()">✕</button></div>
      <div class="hint">Full access to every premium song (licensed from its artists), saving them offline, unlimited scanning and sharing, no ads. Price for <b>${COUNTRIES[c]||c}</b> – change country in your account.</div>
+     ${!isPremiumUser(ME)?`<button id="pmAd" style="width:100%;margin-top:8px">🎬 Not now – watch an ad for ${adMinsLabel()} free</button>`:''}
      <div style="display:grid;gap:6px;margin:10px 0">${pr.plans.map((p,i)=>`<button data-pl="${i}" class="${p===plan?'on':''}">${fmtMoney(p.a,pr.cur)} / ${p.p}${p.m>1?` <span class="small">(${fmtMoney(p.a/p.m,pr.cur)} a month)</span>`:''}</button>`).join('')}</div>
      ${PRICING[c]&&c!=='_std'?'<div class="hint">Monthly billing for your country will come through Google Play in the Android app.</div>':''}
      ${pr.wallet?`<div class="card" style="margin-top:10px"><b>Pay with KBZPay or WavePay</b>
@@ -2077,6 +2161,7 @@ async function premiumModal(){
      <div class="card" style="margin-top:10px"><b>Pay by card</b> <span class="small muted">(Stripe – connected in Phase 3)</span>
        ${API.name==='demo'?'<button id="pyCard" style="width:100%;margin-top:8px">Simulate a successful card payment (demo)</button>':'<div class="hint">Not available yet.</div>'}</div>`);
     $('mbox').querySelectorAll('[data-pl]').forEach(b=>b.onclick=()=>{plan=pr.plans[+b.dataset.pl];draw()});
+    if($('pmAd'))$('pmAd').onclick=()=>{closeModal();watchAdForPass()};
     if($('pyGo'))$('pyGo').onclick=async()=>{const txn=$('pyTxn').value.trim();if(txn.length<4){toast('Enter the transaction ID');return}
       try{await API.pay({country:c,period:plan.p,months:plan.m,amount:plan.a,currency:pr.cur,method:$('pyM').value,txn,note:'MSB-'+ME.id.replace(/[^a-z0-9]/gi,'').slice(-5).toUpperCase()});closeModal();toast('Submitted – Premium starts once confirmed')}catch(e){toast(e.message)}};
     if($('pyCard'))$('pyCard').onclick=async()=>{try{await API.simulateCard(plan,c);closeModal();await refreshAccount();toast('Premium active (demo)');if(P.song&&P.song.cloud){const f=await API.get(P.song.cloud.id);openCloud(f)}}catch(e){toast(e.message)}};
@@ -2218,6 +2303,7 @@ function printSong(){
 (async function init(){
   await DB.open();
   SET=Object.assign(SET,await DB.get('settings',{}));
+  if(!SET.supaUrl)SET.supaUrl=SUPA_DEFAULT.url;if(!SET.supaKey)SET.supaKey=SUPA_DEFAULT.key;
   SONGS=(await DB.all()).filter(s=>s&&s.id&&s.text);
   if(!SONGS.length&&!(await DB.get('seeded',false))){
     await syncOnline(false);
